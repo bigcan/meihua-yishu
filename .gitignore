@@ -17,8 +17,5 @@ venv/
 *.swp
 *.swo
 
-# Experiments (private)
-experiments/
-
 # Tests (local only)
 tests/
