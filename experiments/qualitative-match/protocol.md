@@ -57,20 +57,20 @@ Three batches, tested separately due to different casting methods:
 | E16 Georgia Special Election | Politics | Done | Done | Done (Mar 10) | Done | R=3, C=3 |
 | E17 Pixar Hoppers Box Office | Culture | Done | Done | Done (Mar 8) | Done | R=4, C=1 ⭐ |
 | E18 NVIDIA GTC Keynote | Technology | Done | Done | Done (Mar 17) | Done | R=5, C=1 ⭐ |
-| E19 FOMC Rate Decision | Economy | Done | Done | Pending (Mar 18) | - | - |
-| E20 EU Council Summit | International | Done | Done | Pending (Mar 19-20) | - | - |
-| E21 Project Hail Mary Premiere | Culture | Done | Done | Pending (Mar 20) | - | - |
-| E22 World Indoor Athletics | Sports | Done | Done | Pending (Mar 21) | - | - |
-| E23 South Australia Election | Politics | Done | Done | Pending (Mar 21) | - | - |
+| E19 FOMC Rate Decision | Economy | Done | Done | Done (Mar 18) | Done | R=3, C=1 |
+| E20 EU Council Summit | International | Done | Done | Done (Mar 19-20) | Done | R=5, C=3 |
+| E21 Project Hail Mary Premiere | Culture | Done | Done | Done (Mar 20) | Done | R=3, C=2 |
+| E22 World Indoor Athletics | Sports | Done | Done | Done (Mar 20-22) | Done | R=4, C=2 |
+| E23 South Australia Election | Politics | Done | Done | Done (Mar 21) | Done | R=2, C=3 |
 | E24 UN Fraud Summit | International | Done | Done | Done (Mar 16-17) | Done | R=3, C=4 |
-| E25 Miami Open Tennis Final | Sports | Done | Done | Pending (Mar 29) | - | - |
-| E26 F1 Japanese GP Suzuka | Sports | Done | Done | Pending (Mar 29) | - | - |
-| E27 NCAA Championship Game | Sports | Done | Done | Pending (Apr 6) | - | - |
-| E28 Masters Golf | Sports | Done | Done | Pending (Apr 12) | - | - |
-| E29 Peru Presidential Election | Politics | Done | Done | Pending (Apr 12) | - | - |
-| E30 Hungary Parliamentary Election | Politics | Done | Done | Pending (Apr 12) | - | - |
-| E31 NASA Artemis II | Science/Space | Done | Done | Pending (~Apr 1) | - | - |
-| E32 ISRO Gaganyaan Test | Science/Space | Done | Done | Pending (~Mar 30) | - | - |
+| E25 Miami Open Tennis Final | Sports | Done | Done | Done (Mar 29) | Done | R=5, C=2 ⭐ |
+| E26 F1 Japanese GP Suzuka | Sports | Done | Done | Done (Mar 29) | Done | R=3, C=2 |
+| E27 NCAA Championship Game | Sports | Done | Done | Done (Apr 6) | Done | R=3, C=4 |
+| E28 Masters Golf | Sports | Done | Done | Done (Apr 12) | Done | R=5, C=2 ⭐ |
+| E29 Peru Presidential Election | Politics | Done | Done | Done (Apr 12) | Done | R=3, C=2 |
+| E30 Hungary Parliamentary Election | Politics | Done | Done | Done (Apr 12) | Done | R=4, C=2 |
+| E31 NASA Artemis II | Science/Space | Done | Done | Done (Apr 1-10) | Done | R=5, C=3 ⭐ |
+| E32 ISRO Gaganyaan Test | Science/Space | Done | Done | Done (Apr 10 IADT-02) | Done | R=2, C=4 |
 
 ## Workflow
 
@@ -125,17 +125,21 @@ qualitative-match/
 - **Apr 6**: NCAA championship game
 - **Apr 12**: Masters Golf, Peru election, Hungary election (last events)
 
-## Interim Results (2026-03-18, 19/32 events scored)
+## Interim Results (2026-04-15, 37/62 events scored)
 
-| Metric | Batch 1 | Batch 2 (partial) | Combined |
-|--------|---------|-------------------|----------|
-| Events scored | 12/12 | 7/20 | 19/32 |
-| Real mean | 3.33 | 3.43 | 3.37 |
-| Control mean | 2.83 | 2.71 | 2.79 |
-| Win record | 7-5 | 3-3-1T | 10-8-1T |
-| Wilcoxon p | 0.261 | 0.250 | **0.139** |
+| Metric | Batch 1 | Batch 2 | Batch 3 (partial) | Combined |
+|--------|---------|---------|-------------------|----------|
+| Events scored | 12/12 | 19/20 | 6/30 | 37/62 |
+| Real mean | 3.33 | 3.55 | 3.50 | **3.49** |
+| Control mean | 2.83 | 2.55 | 3.00 | **2.70** |
+| Mean diff | +0.50 | +1.00 | +0.50 | **+0.78** |
+| Win record | 7-5 | 11-7-1T | 5-1 | **23-13-1T** |
+| Wilcoxon p (one-tailed) | 0.261 | 0.014 | 0.109 | **0.011** ✓ |
 
-See `evaluations/interim_report_2026-03-18.md` for full details.
+**The effect crossed statistical significance as of 2026-04-15.**
+
+See `evaluations/interim_report_2026-04-15.md` for full details.
+See `evaluations/interim_report_2026-03-18.md` for prior snapshot.
 
 ## Batch 3 (E33-E62)
 - 30 upcoming events (Apr - May 2026)
@@ -145,9 +149,17 @@ See `evaluations/interim_report_2026-03-18.md` for full details.
 - Each event gets 2 hexagram interpretations (real + control, blinded A/B)
 - Full skill output recorded
 
-### Batch 3 Status Tracker
+### Batch 3 Status Tracker (scored events only)
 
-(To be populated after event selection and casting)
+| Event | Domain | Cast | Interpreted | Resolved | Narrated | Scored |
+|-------|--------|------|------------|----------|----------|--------|
+| E33 Georgia 14th runoff | Politics | Done | Done | Done (Apr 7) | Done | R=2, C=5 |
+| E34 Assam election | Politics | Done | Done | Polled Apr 9, results May 4 | - | pending |
+| E35 Cygnus NG-24 | Science/Space | Done | Done | Done (Apr 11) | Done | R=3, C=1 |
+| E36 Djibouti election | Politics | Done | Done | Done (Apr 10) | Done | R=4, C=5 |
+| E37 Grand National | Sports | Done | Done | Done (Apr 11) | Done | R=5, C=1 ⭐ |
+| E38 Benin election | Politics | Done | Done | Done (Apr 12) | Done | R=4, C=3 |
+| E39–E62 | Various | Done | Done | Pending (Apr 17 – May 31) | - | - |
 
 ## Methodology Difference: Batch 1 vs Batch 2 vs Batch 3
 
