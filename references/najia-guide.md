@@ -1,6 +1,7 @@
 納甲（六爻預測）操作指南
 本檔說明六爻系統的「裝卦 → 定用神 → 看旺衰 → 看動變 → 判吉凶 → 推應期」完整流程。
 數據總表見 najia-tables.md，用神對照詳細版見 liuyao-yongshen.md。
+原典依據見 classics/classics-index.md，遇到疑難時可查 增刪卜易 / 卜筮正宗 對應章節。
 
 一、裝卦流程（scripts/najia.py 已自動化）
 1. 起卦：金錢卦擲幣（jinqian_gua.py）或數字、時間（meihua_calc.py）轉本卦
