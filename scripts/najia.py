@@ -415,7 +415,8 @@ def _detect_fanyin_fuyin(h: AnnotatedHexagram) -> None:
     # 反吟：本卦變卦六爻地支兩兩相沖
     # 伏吟：本卦變卦六爻地支兩兩相同
     bian_nj = hex_najia(h.bian_upper, h.bian_lower)  # type: ignore[arg-type]
-    chong_count = he_count = same_count = 0
+    chong_count = 0
+    same_count = 0
     for i, y in enumerate(h.yaos):
         b_zhi = bian_nj[i][1]
         if b_zhi == y.zhi:
@@ -444,19 +445,12 @@ def _detect_jin_tui(h: AnnotatedHexagram) -> None:
 
 
 def _detect_sanhe_liuhe(h: AnnotatedHexagram) -> None:
-    """檢測卦中三合局、六合"""
-    zhis = [y.zhi for y in h.yaos]
-    zhi_set = set(zhis)
+    """檢測卦中三合局；六合對不逐一列出，因常見且雜訊大，留給 SKILL.md 判斷上下卦六合卦"""
+    zhi_set = {y.zhi for y in h.yaos}
     for combo, name in SAN_HE.items():
         if combo.issubset(zhi_set):
             positions = [str(y.position) for y in h.yaos if y.zhi in combo]
             h.notes.append(f"卦中三合{name}（爻位 {'、'.join(positions)}）：聚合有力")
-    # 卦逢六合：六爻中存在六合對
-    for i in range(6):
-        for j in range(i + 1, 6):
-            if LIU_HE.get(zhis[i]) == zhis[j]:
-                pass  # 太多了，不每對都報；只報關鍵
-    # 簡化：上下卦六合（傳統六合卦）— 留給 SKILL.md 判斷
 
 
 # ============================================================================
@@ -690,11 +684,12 @@ def main(argv: List[str]) -> None:
         print(f"未知指令：{argv[1]}\n")
         print(HELP)
         sys.exit(1)
-    args = _parse_args(argv[1:])  # 把 annotate 視為占位，binary 從 argv[2] 取
-    args["binary"] = argv[2] if len(argv) > 2 else None
-    # 重新解析後續 flag
-    rest_args = _parse_args(["annotate", argv[2]] + argv[3:])
-    args = rest_args
+    if len(argv) < 3:
+        print("錯誤：annotate 需提供 6 字元 0/1 的 binary 作為第二參數\n")
+        print(HELP)
+        sys.exit(1)
+    # 解析後續 flag（argv[2] = binary，argv[3:] = flags）
+    args = _parse_args(["annotate", argv[2]] + argv[3:])
 
     if not args["binary"] or len(args["binary"]) != 6 or any(c not in "01" for c in args["binary"]):
         print("錯誤：binary 必須是 6 字元 0/1")

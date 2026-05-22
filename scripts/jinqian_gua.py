@@ -83,6 +83,7 @@ class Yao:
             if c not in (2, 3):
                 raise ValueError(f"銅錢值只能為 2(字/陰) 或 3(背/陽)，收到 {c}")
         self.total = sum(self.coins)
+        # symbol 為對外顯示用（保留向後相容欄位）
         self.name, self.symbol, self.is_yang, self.is_changing = YAO_TYPES[self.total]
 
     def coin_display(self) -> str:
