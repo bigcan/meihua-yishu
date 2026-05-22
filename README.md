@@ -100,7 +100,11 @@ meihua-yishu/
 │   ├── 18-divinations.md        # 18 types of specific readings
 │   └── case-studies-expanded.md # Classic divination cases (optional)
 └── scripts/
-    └── meihua_calc.py           # Python calculation tool
+    ├── meihua_calc.py           # Meihua casting (time/numbers/lunar conversion)
+    ├── jinqian_gua.py           # Coin divination (六爻): simulates 3 coins × 6 throws
+    ├── najia.py                 # Najia annotation (six relatives, world/response, void, yongshen)
+    ├── fetch_classics.py        # Classics download helper
+    └── test_*.py                # Unit tests (131 total, see "Test Suite" below)
 ```
 
 ## Usage
@@ -183,6 +187,50 @@ Example output:
   Binary: 011001
 ==================================================
 ```
+
+### Coin Divination (六爻) Simulation
+
+```bash
+# Computer simulates 3 coins × 6 throws
+python scripts/jinqian_gua.py random
+
+# Add day-ganzhi, month-zhi, and question type → auto-najia
+# (six relatives, world/response, void, yongshen, timing)
+python scripts/jinqian_gua.py random --day 甲子 --month 寅 --ask 求財
+
+# Manually input 6 throw results
+python scripts/jinqian_gua.py manual 背背字 字背字 背背背 字字字 背字背 字背背
+
+# Interactive (one yao at a time)
+python scripts/jinqian_gua.py interactive
+```
+
+Implements Zhu Xi's《易學啟蒙》0–6 changing-yao interpretation rules, special handling
+for pure-yang/yin mutual hexagrams, and automatic palace-derived fushen (hidden god)
+when the yongshen is absent from the primary hexagram.
+
+## Test Suite
+
+Core logic (casting / najia / six relatives / void / lunar conversion) is covered by
+**131 unit tests** organized in 6 risk tiers:
+
+| Tier | Topic | Tests |
+|------|-------|-------|
+| 1 | Coordinate system (binary, changing-line index, mutual hex) | 27 |
+| 2 | Jing Fang's eight-palace attribution + world/response position | 16 |
+| 3 | Najia tables + six relatives + 5 golden cases from 增刪卜易 | 16 |
+| 4 | Void days + yongshen + chong/he + fushen | 29 |
+| 5 | Lunar conversion (200 years) + year ganzhi + shichen | 24 |
+| 6 | Meihua casting end-to-end + Shao Yong's plum-blossom case | 19 |
+
+```bash
+# Run the full suite (< 20 ms)
+python -m unittest discover -s scripts -p "test_*.py"
+```
+
+All rules cross-checked against《增刪卜易》《卜筮正宗》《易學啟蒙》《梅花易數》
+primary sources. The Jing Fang eight-palace structural test simultaneously validates
+the `PALACE_ORDER` table, the `apply_change` logic, and the historical rule itself.
 
 ## Core Principles
 

@@ -99,7 +99,11 @@ meihua-yishu/
 │   ├── 18-divinations.md        # 十八類分占法
 │   └── case-studies-expanded.md # 經典斷卦案例（選用）
 └── scripts/
-    └── meihua_calc.py           # Python 起卦計算工具
+    ├── meihua_calc.py           # 梅花易數起卦（時間/數字/農曆轉換）
+    ├── jinqian_gua.py           # 金錢卦（六爻）三銅錢模擬起卦
+    ├── najia.py                 # 納甲裝卦（六親、世應、旬空、用神、伏神）
+    ├── fetch_classics.py        # 古籍下載輔助工具
+    └── test_*.py                # 單元測試（共 131 個，見下方「測試套件」）
 ```
 
 ## 使用方式
@@ -182,6 +186,44 @@ python scripts/meihua_calc.py num 6 8 3
   二進位：011001
 ==================================================
 ```
+
+### 金錢卦（六爻）模擬起卦
+
+```bash
+# 電腦模擬擲 3 銅錢 × 6 次起卦
+python scripts/jinqian_gua.py random
+
+# 加上日干支、月支、問事類型 → 自動納甲（六親、世應、旬空、用神、應期）
+python scripts/jinqian_gua.py random --day 甲子 --month 寅 --ask 求財
+
+# 手動輸入 6 次擲卦結果
+python scripts/jinqian_gua.py manual 背背字 字背字 背背背 字字字 背字背 字背背
+
+# 互動式（一爻一爻輸入）
+python scripts/jinqian_gua.py interactive
+```
+
+支援朱熹《易學啟蒙》0–6 動爻解卦法、純陽純陰互卦特殊處理、用神不上卦自動取本宮伏神。
+
+## 測試套件
+
+核心邏輯（起卦/裝卦/納甲/六親/旬空/農曆）涵蓋共 **131 個單元測試**，分 6 層風險：
+
+| Tier | 主題 | 測試數 |
+|------|------|------|
+| 1 | 基礎座標系（binary 編碼、動爻映射、互卦） | 27 |
+| 2 | 京房八宮歸宮 + 世應位置 | 16 |
+| 3 | 納甲查表 + 六親 + 5 個《增刪卜易》黃金卦例 | 16 |
+| 4 | 旬空 + 用神 + 沖合 + 伏神 | 29 |
+| 5 | 農曆轉換（200 年）+ 年地支 + 時辰 | 24 |
+| 6 | 梅花起卦端到端 + 邵子觀梅占金牌測例 | 19 |
+
+```bash
+# 跑全部測試（< 20 ms）
+python -m unittest discover -s scripts -p "test_*.py"
+```
+
+所有規則皆對照《增刪卜易》《卜筮正宗》《易學啟蒙》《梅花易數》原書，京房八宮結構規則同時驗 `PALACE_ORDER` 表 + `apply_change` 邏輯 + 歷史規則三方一致。
 
 ## 核心原理
 
