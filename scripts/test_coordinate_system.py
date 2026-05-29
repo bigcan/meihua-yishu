@@ -33,7 +33,7 @@ from meihua_calc import (  # noqa: E402
     get_hexagram_binary,
     get_hu_gua,
 )
-from jinqian_gua import CoinHexagram, analyze, manual_hexagram  # noqa: E402
+from jinqian_gua import analyze, manual_hexagram  # noqa: E402
 
 
 # ----------------------------------------------------------------------------

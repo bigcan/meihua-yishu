@@ -31,7 +31,7 @@ try:
 except Exception:
     pass
 
-from meihua_calc import BAGUA, HEXAGRAMS, BINARY_TO_GUA, apply_change, binary_to_gua_pair
+from meihua_calc import HEXAGRAMS, apply_change, binary_to_gua_pair
 
 # ============================================================================
 # 核心對照表
@@ -616,7 +616,7 @@ def print_yongshen(h: AnnotatedHexagram, ys_result: Dict) -> None:
     else:
         fs = ys_result["fushen"]
         if fs:
-            print(f"  ✗ 用神不上卦，伏神在本宮首卦：")
+            print("  ✗ 用神不上卦，伏神在本宮首卦：")
             print(f"    第{fs['position']}爻 {fs['ganzhi']}（{fs['liuqin']}）")
             print(f"    飛神：{fs['fei_yao']}")
             print(f"    {fs['note']}")

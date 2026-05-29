@@ -30,10 +30,7 @@ except Exception:
 from meihua_calc import (
     BAGUA,
     HEXAGRAMS,
-    BINARY_TO_GUA,
-    apply_change,
     binary_to_gua_pair,
-    get_hexagram_binary,
     get_hu_gua,
 )
 

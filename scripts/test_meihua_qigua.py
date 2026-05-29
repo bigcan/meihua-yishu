@@ -226,5 +226,63 @@ class TestResultStructure(unittest.TestCase):
         self.assertTrue(self.REQUIRED_KEYS.issubset(result.keys()))
 
 
+# ============================================================================
+# 7. 策略表變卦路徑（F1 回歸測試）
+# ============================================================================
+class TestStrategyChangePaths(unittest.TestCase):
+    """每條 HEXAGRAM_STRATEGY change_path 的「變N爻」必須以自下而上的爻位
+    （初爻=1 … 上爻=6，與 apply_change/print_result 一致）真正能將本卦變為
+    所標示的目標卦。防止策略表的變爻位置被改回「自上而下」的鏡像錯誤。"""
+
+    SHORT = {
+        1: "乾", 2: "坤", 3: "屯", 4: "蒙", 5: "需", 6: "訟", 7: "師", 8: "比",
+        9: "小畜", 10: "履", 11: "泰", 12: "否", 13: "同人", 14: "大有", 15: "謙",
+        16: "豫", 17: "隨", 18: "蠱", 19: "臨", 20: "觀", 21: "噬嗑", 22: "賁",
+        23: "剝", 24: "復", 25: "无妄", 26: "大畜", 27: "頤", 28: "大過", 29: "坎",
+        30: "離", 31: "咸", 32: "恆", 33: "遯", 34: "大壯", 35: "晉", 36: "明夷",
+        37: "家人", 38: "睽", 39: "蹇", 40: "解", 41: "損", 42: "益", 43: "夬",
+        44: "姤", 45: "萃", 46: "升", 47: "困", 48: "井", 49: "革", 50: "鼎",
+        51: "震", 52: "艮", 53: "漸", 54: "歸妹", 55: "豐", 56: "旅", 57: "巽",
+        58: "兌", 59: "渙", 60: "節", 61: "中孚", 62: "小過", 63: "既濟", 64: "未濟",
+    }
+
+    def test_change_paths_use_bottom_up_yao(self):
+        import re
+
+        from meihua_calc import (
+            HEXAGRAM_STRATEGY,
+            HEXAGRAMS,
+            apply_change,
+            binary_to_gua_pair,
+            get_hexagram_binary,
+        )
+
+        name_to_num = {v: k for k, v in self.SHORT.items()}
+        num_to_bin = {num: get_hexagram_binary(u, l)
+                      for (u, l), (num, _) in HEXAGRAMS.items()}
+
+        checked = 0
+        for num, (_, _, _, path) in HEXAGRAM_STRATEGY.items():
+            if not path:
+                continue
+            m = re.search(r"變(\d)爻", path)
+            if not m:
+                continue  # 例：大過 → 夬 → 革（無單一變爻）
+            yao = int(m.group(1))
+            tgt_token = re.split(r"→", path)[-1]
+            tgt_name = re.match(r"\s*([^（(]+)", tgt_token).group(1).strip()
+            self.assertIn(tgt_name, name_to_num,
+                          f"卦{num}：無法解析目標卦名 {tgt_name!r} ← {path!r}")
+            changed = apply_change(num_to_bin[num], yao)
+            got = HEXAGRAMS[binary_to_gua_pair(changed)][0]
+            self.assertEqual(
+                got, name_to_num[tgt_name],
+                f"卦{num} {self.SHORT[num]}：變{yao}爻得 {self.SHORT.get(got)}({got})，"
+                f"但路徑宣稱變為 {tgt_name}({name_to_num[tgt_name]})：{path!r}")
+            checked += 1
+        self.assertGreaterEqual(checked, 38,
+                                f"可解析的變卦路徑應 ≥38 條，實得 {checked}")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
