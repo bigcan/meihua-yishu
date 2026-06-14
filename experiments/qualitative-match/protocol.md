@@ -125,21 +125,30 @@ qualitative-match/
 - **Apr 6**: NCAA championship game
 - **Apr 12**: Masters Golf, Peru election, Hungary election (last events)
 
-## Interim Results (2026-04-15, 37/62 events scored)
+## FINAL Results (2026-06-14, 62/62 events scored — experiment closed)
 
-| Metric | Batch 1 | Batch 2 | Batch 3 (partial) | Combined |
-|--------|---------|---------|-------------------|----------|
-| Events scored | 12/12 | 19/20 | 6/30 | 37/62 |
-| Real mean | 3.33 | 3.55 | 3.50 | **3.49** |
-| Control mean | 2.83 | 2.55 | 3.00 | **2.70** |
-| Mean diff | +0.50 | +1.00 | +0.50 | **+0.78** |
-| Win record | 7-5 | 11-7-1T | 5-1 | **23-13-1T** |
-| Wilcoxon p (one-tailed) | 0.261 | 0.014 | 0.109 | **0.011** ✓ |
+| Metric | Batch 1 | Batch 2 | Batch 3 | Combined |
+|--------|---------|---------|---------|----------|
+| Events scored | 12/12 | 20/20 | 30/30 | **62/62** |
+| Real mean | 3.33 | 3.55 | 2.93 | **3.21** |
+| Control mean | 2.83 | 2.55 | 2.70 | **2.68** |
+| Mean diff | +0.50 | +1.00 | +0.23 | **+0.53** |
+| Win record | 7-5 | 13-6-1T | 14-12-4T | **34-23-5T** |
+| Wilcoxon p (one-tailed) | 0.260 | **0.011** | 0.268 | **0.021** |
 
-**The effect crossed statistical significance as of 2026-04-15.**
+**The effect peaked at p=0.0045 (n=47, 2026-05-02) then weakened to p=0.021 once the final 15 events resolved.** The final 15 — scored under a stricter split-role protocol (separate blinded narrator + separate blinded scorer subagents) — regressed against the hypothesis (real 2.20 vs control 2.60). Completed batch 3 (full skill) is null (p=0.27); only batch 2 (plain-LLM 取象法) is individually significant. The full-skill wrapper did **not** beat plain prompting.
 
-See `evaluations/interim_report_2026-04-15.md` for full details.
-See `evaluations/interim_report_2026-03-18.md` for prior snapshot.
+See `analysis/final_results_n62.md` for the full writeup, caveats, and standout cases.
+See `analysis/wilcoxon_n62.py` to reproduce (re-derives the n=47 p=0.0045 as a sanity check).
+See `evaluations/interim_report_2026-05-02.md` (peak snapshot), `..._2026-04-15.md`, `..._2026-03-18.md` for the trajectory.
+
+### Earlier interim trajectory (superseded)
+| Snapshot | n | Mean diff | p (1-tail) |
+|---|---:|---:|---:|
+| 2026-03-18 | 19 | +0.58 | 0.139 |
+| 2026-04-15 | 37 | +0.78 | 0.011 |
+| 2026-05-02 | 47 | +0.83 | 0.0045 |
+| **2026-06-14 final** | **62** | **+0.53** | **0.021** |
 
 ## Batch 3 (E33-E62)
 - 30 upcoming events (Apr - May 2026)
@@ -154,12 +163,35 @@ See `evaluations/interim_report_2026-03-18.md` for prior snapshot.
 | Event | Domain | Cast | Interpreted | Resolved | Narrated | Scored |
 |-------|--------|------|------------|----------|----------|--------|
 | E33 Georgia 14th runoff | Politics | Done | Done | Done (Apr 7) | Done | R=2, C=5 |
-| E34 Assam election | Politics | Done | Done | Polled Apr 9, results May 4 | - | pending |
+| E34 Assam election | Politics | Done | Done | Done (results May 4) | Done | R=0, C=3 |
 | E35 Cygnus NG-24 | Science/Space | Done | Done | Done (Apr 11) | Done | R=3, C=1 |
 | E36 Djibouti election | Politics | Done | Done | Done (Apr 10) | Done | R=4, C=5 |
 | E37 Grand National | Sports | Done | Done | Done (Apr 11) | Done | R=5, C=1 ⭐ |
 | E38 Benin election | Politics | Done | Done | Done (Apr 12) | Done | R=4, C=3 |
-| E39–E62 | Various | Done | Done | Pending (Apr 17 – May 31) | - | - |
+| E39 NBA Play-In | Sports | Done | Done | Done (Apr 17) | Done | R=3, C=3 (T) |
+| E40 Michael MJ biopic | Culture | Done | Done | Done (Apr 17) | Done | R=5, C=1 ⭐ |
+| E41 NBA Playoffs R1 | Sports | Done | Done | Done (late Apr) | Done | R=3, C=3 (T) |
+| E42 NHL Playoffs R1 | Sports | Done | Done | Done (early May) | Done | R=4, C=2 |
+| E43 Adobe Summit | Tech | Done | Done | Done (Apr 19-22) | Done | R=4, C=3 |
+| E44 Boston Marathon | Sports | Done | Done | Done (Apr 20) | Done | R=4, C=3 |
+| E45 Google Cloud Next | Tech | Done | Done | Done (Apr 22-24) | Done | R=1, C=5 |
+| E46 NFL Draft R1 | Sports | Done | Done | Done (Apr 23) | Done | R=5, C=2 ⭐ |
+| E47 Chevron Championship | Sports | Done | Done | Done (Apr 26) | Done | R=3, C=4 |
+| E48 London Marathon | Sports | Done | Done | Done (Apr 26) | Done | R=5, C=1 ⭐ |
+| E49 Devil Wears Prada 2 | Culture | Done | Done | Done (May 1) | Done | R=2, C=3 |
+| E50 Kentucky Derby | Sports | Done | Done | Done (May 2) | Done | R=3, C=3 (T) |
+| E51 F1 Miami GP | Sports | Done | Done | Done (May 3) | Done | R=1, C=2 |
+| E52 Met Gala | Culture | Done | Done | Done (May 4) | Done | R=4, C=2 |
+| E53 UK local elections | Politics | Done | Done | Done (May 7) | Done | R=2, C=1 |
+| E54 Mortal Kombat 2 | Culture | Done | Done | Done (May 8, drift) | Done | R=1, C=2 |
+| E55 FA Cup Final | Sports | Done | Done | Done (May 16) | Done | R=3, C=3 (T) |
+| E56 Cape Verde parliament | Politics | Done | Done | Done (May 17) | Done | R=2, C=3 |
+| E57 French Open week 1 | Sports | Done | Done | Done (May 18) | Done | R=1, C=4 |
+| E58 Google I/O | Tech | Done | Done | Done (May 19) | Done | R=3, C=2 |
+| E59 Dell Tech World | Tech | Done | Done | Done (May 18) | Done | R=1, C=4 |
+| E61 Colombia round 1 | Politics | Done | Done | Done (May 31, → runoff) | Done | R=2, C=3 |
+| E62 UEFA CL Final | Sports | Done | Done | Done (May 30) | Done | R=3, C=2 |
+| E60 Starship Flight 12 V3 | Science/Space | Done | Done | Did not launch — static fire only Apr 15 | Done | R=5, C=2 ⭐ |
 
 ## Methodology Difference: Batch 1 vs Batch 2 vs Batch 3
 
