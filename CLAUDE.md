@@ -17,7 +17,7 @@ When a request changes divination behavior, decide whether it belongs in `SKILL.
 All from repo root. There are no build/lint steps and no third-party deps for the core scripts.
 
 ```bash
-# Full test suite (131 tests across 6 risk tiers; runs in <20 ms)
+# Full test suite (134 tests across 6 risk tiers; runs in <20 ms)
 python -m unittest discover -s scripts -p "test_*.py"
 
 # Run a single tier

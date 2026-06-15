@@ -212,7 +212,7 @@ when the yongshen is absent from the primary hexagram.
 ## Test Suite
 
 Core logic (casting / najia / six relatives / void / lunar conversion) is covered by
-**131 unit tests** organized in 6 risk tiers:
+**134 unit tests** organized in 6 risk tiers:
 
 | Tier | Topic | Tests |
 |------|-------|-------|
@@ -221,7 +221,7 @@ Core logic (casting / najia / six relatives / void / lunar conversion) is covere
 | 3 | Najia tables + six relatives + 5 golden cases from 增刪卜易 | 16 |
 | 4 | Void days + yongshen + chong/he + fushen | 29 |
 | 5 | Lunar conversion (200 years) + year ganzhi + shichen | 24 |
-| 6 | Meihua casting end-to-end + Shao Yong's plum-blossom case | 19 |
+| 6 | Meihua casting end-to-end + Shao Yong's plum-blossom case + strategy-table sync | 22 |
 
 ```bash
 # Run the full suite (< 20 ms)

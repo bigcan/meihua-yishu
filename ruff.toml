@@ -1,0 +1,8 @@
+# Ruff configuration for the meihua-yishu calculators.
+# There is no build/lint gate in this repo; ruff is run ad hoc during audits.
+
+[lint.per-file-ignores]
+# In the hexagram tests, `l` is the lower trigram in the (upper, lower) = (u, l)
+# convention used throughout meihua_calc; the u/l pairing is intentional and
+# reads unambiguously, so E741 ("ambiguous variable name") is suppressed there.
+"scripts/test_*.py" = ["E741"]

@@ -551,18 +551,24 @@ def print_hexagram(h: AnnotatedHexagram) -> None:
         wx = y.wuxing.ljust(3)
         line = _yao_line(y).ljust(8)
         pos_marks = []
-        if y.is_shi: pos_marks.append("世")
-        if y.is_ying: pos_marks.append("應")
+        if y.is_shi:
+            pos_marks.append("世")
+        if y.is_ying:
+            pos_marks.append("應")
         pos = ("第" + str(y.position) + "爻 " + "".join(pos_marks)).ljust(5)
         bian = ""
         if y.is_changing:
             bian = f"→{y.bian_zhi}{y.bian_wuxing}({y.bian_liuqin})"
         bian = bian.ljust(10)
         notes = []
-        if y.is_void: notes.append("旬空")
-        if y.is_ri_chong: notes.append("日破")
-        if y.is_yue_chong: notes.append("月破")
-        if y.is_ri_he: notes.append("日合")
+        if y.is_void:
+            notes.append("旬空")
+        if y.is_ri_chong:
+            notes.append("日破")
+        if y.is_yue_chong:
+            notes.append("月破")
+        if y.is_ri_he:
+            notes.append("日合")
         notes.extend(y.note)
         note_str = "、".join(notes)
         print(f"{liushou} {liuqin} {gz} {wx} {line} {pos} {bian} {note_str}")
@@ -598,10 +604,14 @@ def print_yongshen(h: AnnotatedHexagram, ys_result: Dict) -> None:
     if matches:
         for y in matches:
             tags = []
-            if y.is_shi: tags.append("世")
-            if y.is_ying: tags.append("應")
-            if y.is_void: tags.append("旬空")
-            if y.is_changing: tags.append("動")
+            if y.is_shi:
+                tags.append("世")
+            if y.is_ying:
+                tags.append("應")
+            if y.is_void:
+                tags.append("旬空")
+            if y.is_changing:
+                tags.append("動")
             tag_str = f"［{'、'.join(tags)}］" if tags else ""
             print(f"  ✓ 第{y.position}爻 {y.ganzhi()}({y.wuxing}) {tag_str}")
         # 應期

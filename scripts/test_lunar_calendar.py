@@ -191,7 +191,6 @@ class TestContinuity(unittest.TestCase):
 
     def test_30_consecutive_days_in_2024(self):
         prev = None
-        prev_total = None
         d = date(2024, 6, 1)
         for _ in range(30):
             curr = gregorian_to_lunar(d.year, d.month, d.day)

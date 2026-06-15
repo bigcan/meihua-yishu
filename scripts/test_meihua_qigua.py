@@ -284,5 +284,81 @@ class TestStrategyChangePaths(unittest.TestCase):
                                 f"可解析的變卦路徑應 ≥38 條，實得 {checked}")
 
 
+# ============================================================================
+# 8. 策略表 markdown ↔ 程式碼同步（F2 回歸測試）
+# ============================================================================
+class TestStrategyMarkdownSync(unittest.TestCase):
+    """references/hexagram-strategy.md 必須與 meihua_calc.HEXAGRAM_STRATEGY 完全
+    同步（CLAUDE.md 列為關鍵不變式）：64 列速查表的吉率/類型/策略/卦名一致，
+    每條變卦路徑的目標/變爻/吉率一致，且路徑「得R%」等於目標卦自身的吉率。
+    此測試防止程式碼與 markdown 之一被單方面修改而產生矛盾讀數。"""
+
+    MD_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "..", "references", "hexagram-strategy.md")
+
+    def _read_md(self) -> str:
+        with open(self.MD_PATH, encoding="utf-8") as fh:
+            return fh.read()
+
+    def test_main_table_in_sync(self):
+        import re
+
+        from meihua_calc import HEXAGRAM_STRATEGY
+
+        short = TestStrategyChangePaths.SHORT
+        rows = {}
+        for m in re.finditer(r"^(\d+)\|(.+?)\|(\d+)%\|(.+?)\|(.+?)\s*$",
+                             self._read_md(), re.M):
+            rows[int(m.group(1))] = (m.group(2).strip(), int(m.group(3)),
+                                     m.group(4).strip(), m.group(5).strip())
+        self.assertEqual(len(rows), 64, f"速查表應 64 列，實得 {len(rows)}")
+        for num, (typ, adv, jr, _path) in HEXAGRAM_STRATEGY.items():
+            self.assertIn(num, rows, f"卦{num} 缺於 markdown 速查表")
+            md_name, md_jr, md_typ, md_adv = rows[num]
+            self.assertEqual(
+                (md_name, md_jr, md_typ, md_adv), (short[num], jr, typ, adv),
+                f"卦{num} 速查表不同步：md={rows[num]} "
+                f"code={(short[num], jr, typ, adv)}")
+
+    def test_change_paths_in_sync(self):
+        import re
+
+        from meihua_calc import HEXAGRAM_STRATEGY
+
+        short = TestStrategyChangePaths.SHORT
+        name_to_num = {v: k for k, v in short.items()}
+
+        code = {}
+        for num, (_typ, _adv, _jr, path) in HEXAGRAM_STRATEGY.items():
+            if not path:
+                continue
+            m = re.search(r"變(\d)爻得(\d+)%", path)
+            if not m:
+                continue  # 多段路徑（大過 → 夬 → 革），markdown 亦無單一變爻
+            tgt = re.match(r"\s*([^（(]+)", re.split(r"→", path)[-1]).group(1).strip()
+            code[num] = (tgt, int(m.group(1)), int(m.group(2)))
+
+        md = {}
+        for m in re.finditer(
+                r"(\d+)([^\d,，()（）→\s]+)→([^\d,，()（）→\s]+)\(變(\d)爻(\d+)%\)",
+                self._read_md()):
+            md[int(m.group(1))] = (m.group(3), int(m.group(4)), int(m.group(5)))
+
+        self.assertEqual(
+            set(code), set(md),
+            f"變卦路徑來源卦不一致：code−md={set(code) - set(md)} "
+            f"md−code={set(md) - set(code)}")
+        for num in code:
+            self.assertEqual(
+                code[num], md[num],
+                f"卦{num} {short[num]} 路徑不同步：code={code[num]} md={md[num]}")
+            tgt_num = name_to_num[code[num][0]]
+            self.assertEqual(
+                code[num][2], HEXAGRAM_STRATEGY[tgt_num][2],
+                f"卦{num} 路徑得{code[num][2]}% 但目標 {code[num][0]} "
+                f"吉率={HEXAGRAM_STRATEGY[tgt_num][2]}%")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
