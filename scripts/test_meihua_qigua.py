@@ -26,22 +26,35 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from meihua_calc import (  # noqa: E402
+    BAGUA,
     DIZHI,
+    GUADE_INTENT,
+    HEXAGRAMS,
     SEASON_ELEMENT,
     YEAR_INFOS,
     _analyze_hexagram,
     _month_days,
     _MONTH_SEASON,
+    _yao_name,
+    analyze_guade,
     analyze_wangshuai,
     analyze_wuxing,
+    analyze_yao_positions,
+    binary_to_gua_pair,
+    get_cuo_gua,
+    get_hexagram_binary,
     get_season,
     get_year_dizhi,
+    get_zong_gua,
     lunar_next_day,
     num_to_gua,
     num_to_yao,
     qigua_by_gregorian_time,
+    qigua_by_gregorian_time_precise,
     qigua_by_numbers,
+    qigua_by_numbers_at,
     qigua_by_time,
+    qigua_by_time_precise,
 )
 
 
@@ -339,6 +352,159 @@ class TestWangShuai(unittest.TestCase):
 
 
 # ============================================================================
+# 4a-3. 錯卦／綜卦（卦變之學，非原書梅花法，屬本專案加掛透鏡）
+# ============================================================================
+class TestCuoZongGua(unittest.TestCase):
+
+    def test_cuo_is_full_yinyang_flip(self):
+        self.assertEqual(get_cuo_gua("111111"), binary_to_gua_pair("000000"))
+        self.assertEqual(get_cuo_gua("010101"), binary_to_gua_pair("101010"))
+
+    def test_zong_is_vertical_reversal(self):
+        # 屯(010001) 顛倒為 蒙(100010)——屯蒙為經典綜卦對
+        self.assertEqual(get_zong_gua("010001"), binary_to_gua_pair("100010"))
+
+    def test_both_are_involutions(self):
+        """錯之錯、綜之綜都應回到本卦——防止翻轉方向被改成別的操作"""
+        for (u, ln), (num, _name) in HEXAGRAMS.items():
+            binary = get_hexagram_binary(u, ln)
+            with self.subTest(hexagram=num):
+                cuo = get_hexagram_binary(*get_cuo_gua(binary))
+                self.assertEqual(get_hexagram_binary(*get_cuo_gua(cuo)), binary)
+                zong = get_hexagram_binary(*get_zong_gua(binary))
+                self.assertEqual(get_hexagram_binary(*get_zong_gua(zong)), binary)
+
+    def test_qian_kun_jiji_weiji_pairs(self):
+        result = _analyze_hexagram(1, 1, 1)          # 乾為天
+        self.assertEqual(result["錯卦"]["名稱"], "坤為地")
+        jiji = _analyze_hexagram(6, 3, 1)            # 水火既濟（坎上離下）
+        self.assertEqual(jiji["本卦"]["名稱"], "水火既濟")
+        self.assertEqual(jiji["錯卦"]["名稱"], "火水未濟")
+        self.assertEqual(jiji["綜卦"]["名稱"], "火水未濟")
+
+
+# ============================================================================
+# 4a-4. 爻位盤（《周易》義理爻位學：當位／得中／應／承乘）
+# ============================================================================
+class TestYaoPositions(unittest.TestCase):
+    """既濟六爻皆當位、未濟六爻皆失正，是爻位學最經典的一對錨點。"""
+
+    def test_jiji_all_correct_positions(self):
+        board = analyze_yao_positions("010101", 1)   # 水火既濟
+        self.assertTrue(all(ln["當位"] == "得正" for ln in board["六爻"]),
+                        [ln["當位"] for ln in board["六爻"]])
+        self.assertTrue(all(ln["有應"] for ln in board["六爻"]),
+                        "既濟六爻皆相應")
+        self.assertTrue(board["二五中正相應"])
+
+    def test_weiji_all_incorrect_positions(self):
+        board = analyze_yao_positions("101010", 1)   # 火水未濟
+        self.assertTrue(all(ln["當位"] == "失正" for ln in board["六爻"]),
+                        [ln["當位"] for ln in board["六爻"]])
+        self.assertFalse(board["二五中正相應"])
+
+    def test_yao_names(self):
+        self.assertEqual(_yao_name(1, True), "初九")
+        self.assertEqual(_yao_name(1, False), "初六")
+        self.assertEqual(_yao_name(6, True), "上九")
+        self.assertEqual(_yao_name(6, False), "上六")
+        self.assertEqual(_yao_name(2, False), "六二")
+        self.assertEqual(_yao_name(5, True), "九五")
+
+    def test_names_match_yinyang_of_binary(self):
+        """爻名的九/六必須跟著該位的陰陽走（初爻為最右位元）"""
+        board = analyze_yao_positions("010101", 1)
+        got = [ln["名稱"] for ln in board["六爻"]]
+        self.assertEqual(got, ["初九", "六二", "九三", "六四", "九五", "上六"])
+
+    def test_zhong_only_at_two_and_five(self):
+        board = analyze_yao_positions("110101", 3)
+        for ln in board["六爻"]:
+            with self.subTest(位=ln["位"]):
+                self.assertEqual(ln["得中"] == "得中", ln["位"] in (2, 5))
+
+    def test_ying_partners_are_1_4__2_5__3_6(self):
+        board = analyze_yao_positions("110101", 3)
+        self.assertEqual([ln["應位"] for ln in board["六爻"]], [4, 5, 6, 1, 2, 3])
+
+    def test_chengcheng_terminology(self):
+        """古法「乘」專指陰居陽上；反向是下陰承陽。不得出現自創的「陽乘陰」。"""
+        board = analyze_yao_positions("110101", 3)   # 風火家人
+        marks = [ln["承乘"] for ln in board["六爻"] if ln["承乘"]]
+        self.assertTrue(marks)
+        for m in marks:
+            self.assertIn(m.split("（")[0], ("陰乘陽", "下陰承陽"))
+        self.assertNotIn("陽乘陰", "".join(marks))
+
+    def test_chengcheng_direction(self):
+        """陰爻在上、陽爻在下 → 該陰爻標陰乘陽；反之標下陰承陽"""
+        board = analyze_yao_positions("110101", 3)   # 初九 六二 九三 六四 九五 上九
+        by_pos = {ln["位"]: ln["承乘"] for ln in board["六爻"]}
+        self.assertTrue(by_pos[2].startswith("陰乘陽"))     # 六二 乘 初九
+        self.assertTrue(by_pos[3].startswith("下陰承陽"))   # 九三 上，六二 承之
+        self.assertEqual(by_pos[1], "")                     # 初爻無下鄰
+
+    def test_dong_summary_names_the_moving_line(self):
+        for dong in range(1, 7):
+            with self.subTest(dong=dong):
+                board = analyze_yao_positions("110101", dong)
+                expected = board["六爻"][dong - 1]["名稱"]
+                self.assertTrue(board["動爻摘要"].startswith(f"{expected}（動）："),
+                                board["動爻摘要"])
+
+    def test_board_emitted_on_every_cast(self):
+        for result in (qigua_by_numbers(6, 8), qigua_by_time(2024, 1, 15, 10)):
+            self.assertIn("爻位盤", result)
+            self.assertEqual(len(result["爻位盤"]["六爻"]), 6)
+            self.assertEqual(result["本卦"]["動爻位"],
+                             int(result["本卦"]["動爻"].replace("第", "").replace("爻", "")))
+
+    def test_moving_line_yinyang_matches_binary_and_board(self):
+        """本卦【動爻陰陽】必須同時對得上二進位（初爻為最右位元）與爻位盤那一列"""
+        for u in range(1, 9):
+            for dong in range(1, 7):
+                with self.subTest(upper=u, dong=dong):
+                    result = _analyze_hexagram(u, 8, dong)
+                    binary = result["本卦"]["二進位"]
+                    expected = "陽" if binary[6 - dong] == "1" else "陰"
+                    self.assertEqual(result["本卦"]["動爻陰陽"], expected)
+                    self.assertEqual(result["爻位盤"]["六爻"][dong - 1]["陰陽"], expected)
+
+
+# ============================================================================
+# 4a-5. 卦德（《說卦傳》）
+# ============================================================================
+class TestGuaDe(unittest.TestCase):
+
+    def test_every_trigram_has_a_de_with_an_intent(self):
+        self.assertEqual(len(BAGUA), 8)
+        des = {info["de"] for info in BAGUA.values()}
+        self.assertEqual(len(des), 8, f"八卦卦德應互異，實得 {des}")
+        self.assertEqual(des, set(GUADE_INTENT), "卦德與意向表不同步")
+
+    def test_shuogua_assignments(self):
+        """《說卦傳》：乾健、坤順、震動、巽入、坎陷、離麗、艮止、兌說"""
+        expected = {1: "健", 2: "說", 3: "麗", 4: "動",
+                    5: "入", 6: "陷", 7: "止", 8: "順"}
+        for num, de in expected.items():
+            self.assertEqual(BAGUA[num]["de"], de, f"{BAGUA[num]['name']} 卦德應為 {de}")
+
+    def test_same_de_reports_alignment(self):
+        self.assertIn("同德相應", analyze_guade(1, 1))
+
+    def test_polar_pairs_get_specific_note(self):
+        for a, b in [(1, 8), (4, 7), (6, 3), (2, 5)]:   # 健順 動止 陷麗 說入
+            with self.subTest(pair=(BAGUA[a]["name"], BAGUA[b]["name"])):
+                text = analyze_guade(a, b)
+                self.assertNotIn("兩股力性質不同", text,
+                                 "傳統對舉的兩極應有專屬說法，不應落入泛用句")
+
+    def test_guade_is_symmetric_in_note_but_not_in_subject(self):
+        """卦德關係描述體與用各自的取向，故 A遇B 與 B遇A 不同句"""
+        self.assertNotEqual(analyze_guade(1, 8), analyze_guade(8, 1))
+
+
+# ============================================================================
 # 4b. 乾為天 / 坤為地 互卦取自變卦
 # ============================================================================
 class TestPureGuaHuFromBian(unittest.TestCase):
@@ -464,6 +630,81 @@ class TestQiguaByGregorianTime(unittest.TestCase):
         self.assertIn("閏", gz["日期轉換"]["農曆"])
         # 至少應產生合法卦序號
         self.assertIn(gz["本卦"]["序號"], range(1, 65))
+
+
+# ============================================================================
+# 5b. 分秒精度起卦（今人擴充，非邵雍原法）
+# ============================================================================
+class TestPreciseCasting(unittest.TestCase):
+    """純時辰起卦在同一時辰（2 小時）內恆得同卦；分入下卦、秒入動爻可分辨。"""
+
+    def test_minute_changes_lower_gua_or_dong(self):
+        a = qigua_by_time_precise(2024, 1, 15, 10, 0, 0)
+        b = qigua_by_time_precise(2024, 1, 15, 10, 30, 0)
+        self.assertNotEqual(
+            (a["本卦"]["二進位"], a["本卦"]["動爻"]),
+            (b["本卦"]["二進位"], b["本卦"]["動爻"]),
+            "同時辰不同分鐘應得不同卦")
+
+    def test_second_changes_dong_yao(self):
+        a = qigua_by_time_precise(2024, 1, 15, 10, 0, 0)
+        b = qigua_by_time_precise(2024, 1, 15, 10, 0, 1)
+        self.assertEqual(a["本卦"]["二進位"], b["本卦"]["二進位"], "秒只入動爻")
+        self.assertNotEqual(a["本卦"]["動爻"], b["本卦"]["動爻"])
+
+    def test_upper_gua_unaffected_by_minute_and_second(self):
+        base = qigua_by_time_precise(2024, 1, 15, 10, 0, 0)["本卦"]["上卦"]
+        for minute, second in [(7, 0), (0, 41), (59, 59)]:
+            with self.subTest(minute=minute, second=second):
+                got = qigua_by_time_precise(2024, 1, 15, 10, minute, second)
+                self.assertEqual(got["本卦"]["上卦"], base, "上卦只由年月日時辰決定")
+
+    def test_shichen_precision_is_constant_within_the_hour_pair(self):
+        """對照組：傳統時辰起卦在同一時辰內確實恆同——這正是精度擴充要解決的事"""
+        a = qigua_by_time(2024, 1, 15, 9)
+        b = qigua_by_time(2024, 1, 15, 10)
+        self.assertEqual(a["本卦"]["二進位"], b["本卦"]["二進位"])
+
+    def test_precise_applies_zishi_and_season(self):
+        rolled = qigua_by_time_precise(2024, 6, 15, 23, 30, 30)
+        self.assertEqual(rolled["計算過程"]["日數"], 16)
+        self.assertIn("子時推日", rolled["計算過程"])
+        self.assertIn("卦氣旺衰", rolled)
+
+    def test_gregorian_precise_matches_lunar_precise(self):
+        gz = qigua_by_gregorian_time_precise(2024, 2, 10, 11, 22, 33)
+        ln = qigua_by_time_precise(2024, 1, 1, 11, 22, 33)
+        self.assertEqual(gz["本卦"]["序號"], ln["本卦"]["序號"])
+        self.assertEqual(gz["本卦"]["動爻"], ln["本卦"]["動爻"])
+        self.assertIn("11:22:33", gz["日期轉換"]["西曆"])
+
+
+# ============================================================================
+# 5c. 數字起卦 + 占時（日期只定時令，不入起卦之數）
+# ============================================================================
+class TestNumbersAt(unittest.TestCase):
+
+    def test_date_does_not_change_the_hexagram(self):
+        plain = qigua_by_numbers(6, 8, 3)
+        for gy, gm, gd in [(2024, 1, 15), (2024, 7, 20), (2025, 11, 2)]:
+            with self.subTest(date=(gy, gm, gd)):
+                at = qigua_by_numbers_at(gy, gm, gd, 10, 6, 8, 3)
+                self.assertEqual(at["本卦"]["二進位"], plain["本卦"]["二進位"])
+                self.assertEqual(at["本卦"]["動爻"], plain["本卦"]["動爻"])
+
+    def test_date_supplies_the_season(self):
+        spring = qigua_by_numbers_at(2024, 2, 20, 10, 6, 8)   # 農曆正月 → 春
+        self.assertIn("卦氣旺衰", spring)
+        self.assertIn("春", spring["卦氣旺衰"]["時令"])
+        self.assertIn("占時", spring["計算過程"])
+        self.assertNotIn("卦氣旺衰", qigua_by_numbers(6, 8))
+
+    def test_zishi_agrees_with_time_casting(self):
+        """23 時的數字占與同刻的時間占必須落在同一時令，不可兩處說法不同"""
+        at = qigua_by_numbers_at(2024, 7, 20, 23, 6, 8)      # 農曆 6/15 → 推 6/16
+        timed = qigua_by_gregorian_time(2024, 7, 20, 23)
+        self.assertEqual(at["卦氣旺衰"]["時令"], timed["卦氣旺衰"]["時令"])
+        self.assertIn("次日", at["計算過程"]["占時"])
 
 
 # ============================================================================

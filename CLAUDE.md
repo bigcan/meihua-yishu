@@ -17,7 +17,7 @@ When a request changes divination behavior, decide whether it belongs in `SKILL.
 All from repo root. There are no build/lint steps and no third-party deps for the core scripts.
 
 ```bash
-# Full test suite (172 tests across 7 risk tiers; ~8 s — Tier 7 spawns subprocesses)
+# Full test suite (207 tests across 7 risk tiers; ~12 s — Tier 7 spawns subprocesses)
 python -m unittest discover -s scripts -p "test_*.py"
 
 # Run a single tier
@@ -25,7 +25,8 @@ python -m unittest scripts.test_lunar_calendar
 python -m unittest scripts.test_meihua_qigua.TestMeihuaQiguaByTime.test_shao_yong_plum_blossom_case
 
 # Meihua casting CLI
-python scripts/meihua_calc.py time                     # current time (Gregorian → lunar auto)
+python scripts/meihua_calc.py time                     # current time, second precision (default)
+python scripts/meihua_calc.py time-shichen             # current time, traditional 2-hour 時辰
 python scripts/meihua_calc.py gregorian 2024 1 18 14   # Gregorian + hour
 python scripts/meihua_calc.py lunar 2023 12 8 14       # lunar directly
 python scripts/meihua_calc.py num 6 8 9                # 2 or 3 numbers
@@ -50,6 +51,8 @@ The `experiments/prediction-validation/` subproject has its own `requirements.tx
 1. **Branch on method first** — Meihua family (time/number/image/sound) vs. Coin-toss + Najia (六爻). If the user brought a specific question without choosing a method, the skill *requires* asking which to use before casting. Don't default to time-casting silently.
 2. **Cast** — either via the LLM's own arithmetic (Meihua image-casting needs only `bagua-wanwu.md`) or by calling a script. Meihua time-casting **must** use the lunar calendar; `meihua_calc.py` has a built-in 1900–2099 lunar table so no external library is required.
 3. **Interpret in a prescribed order** — line text (yaoci) first, then ti-yong, mutual hexagram, transformed hexagram, hexagram relationships, timing. Each step has a dedicated `references/*.md`.
+
+   Three layers in the script's output are **deliberately not 原書 method** and must not be cited as Shao Yong's: 爻位盤 (當位/得中/應/承乘) comes from 《周易》義理 line-position theory, 錯卦/綜卦 from 卦變, and 卦德 from 《說卦傳》. They are added lenses. The 分/秒 precision extension is likewise modern — `time-shichen` gives the traditional 2-hour behaviour.
 4. **Output the strategy block** — this is mandatory and the format is fixed in `SKILL.md` (本卦 / 爻辭吉語比例 / 類型 / 策略 / 下一步 / 變卦路徑). The 6 strategy types (吸引子/排斥子/福地/困境/陷阱/一般 → 留/走/守/變/慎/觀) live in `HEXAGRAM_STRATEGY` in [meihua_calc.py:573](scripts/meihua_calc.py:573) and in `references/hexagram-strategy.md` — keep them in sync (Tier 6 `TestStrategyMarkdownSync` enforces both directions).
 
 **The percentages are a text metric, not a probability.** They are 爻辭吉語比例 — auspicious-word density across the 384 line texts, from the sibling project `muyen/decoding-iching`, whose author has since retracted the hexagram-level classification (n=6 lines per hexagram; shuffled labels give equally extreme "attractors", p=0.35/0.52). This fork keeps the layer for ranking the *tone* of change-paths and labels it honestly everywhere it surfaces. Never render it as 吉率 or as a success probability in user-facing output. Whether to follow upstream and delete the layer outright is an open decision — don't resolve it unilaterally.
@@ -87,10 +90,10 @@ The test files are organized as 7 "risk tiers" and are also the most readable sp
 - Tier 3 `test_najia_liuqin.py` — najia tables, six relatives, 5 canonical cases from 增刪卜易
 - Tier 4 `test_yongshen_xunkong.py` — void days, yongshen, chong/he, fushen
 - Tier 5 `test_lunar_calendar.py` — 200-year lunar conversion, year ganzhi, shichen
-- Tier 6 `test_meihua_qigua.py` — end-to-end Meihua casting incl. Shao Yong's plum-blossom case; 體用生剋 all 5 relations; 旺衰 derivation vs. both markdown tables; strategy change-paths and md↔code sync
-- Tier 7 `test_output_path.py` — what the user actually receives: CLI under cp950/cp437/ascii consoles, `print_result`/`print_strategy_advice`, the strategy accessors, and the coin-casting entry point (incl. the 1/8·3/8·3/8·1/8 three-coin distribution)
+- Tier 6 `test_meihua_qigua.py` — end-to-end Meihua casting incl. Shao Yong's plum-blossom case; 體用生剋 all 5 relations; 旺衰 derivation vs. both markdown tables; 爻位盤 anchored on 既濟 (all 當位) / 未濟 (all 失正); 錯/綜 involution over all 64; 卦德 vs 《說卦傳》; strategy change-paths and md↔code sync
+- Tier 7 `test_output_path.py` — what the user actually receives: CLI under cp950/cp437/ascii consoles, every `print_result` section, the strategy accessors, and the coin-casting entry point (incl. the 1/8·3/8·3/8·1/8 three-coin distribution)
 
-Tiers 1–6 run in ~10 ms; Tier 7 takes ~7 s because it spawns subprocesses to test real console encodings.
+Tiers 1–6 run in ~10 ms; Tier 7 takes ~12 s because it spawns subprocesses to test real console encodings.
 
 If you add a new historical rule, prefer adding a test that references its primary source (《增刪卜易》《卜筮正宗》《易學啟蒙》《梅花易數》) over inline comments.
 

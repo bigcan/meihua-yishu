@@ -39,6 +39,7 @@ from meihua_calc import (  # noqa: E402
     print_result,
     print_strategy_advice,
     qigua_by_numbers,
+    qigua_by_time,
 )
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -55,6 +56,8 @@ class TestRestrictedEncodingConsole(unittest.TestCase):
         ("meihua_calc.py", ["num", "6", "8"]),
         ("meihua_calc.py", ["lunar", "2024", "6", "15", "23"]),
         ("meihua_calc.py", ["gregorian", "2024", "1", "18", "14"]),
+        ("meihua_calc.py", ["time"]),
+        ("meihua_calc.py", ["time-shichen"]),
         ("jinqian_gua.py", ["random"]),
     ]
     ENCODINGS = ["cp950", "cp437", "ascii"]
@@ -116,6 +119,40 @@ class TestPrintPaths(unittest.TestCase):
         with redirect_stdout(buf):
             print_result(qigua_by_numbers(6, 8))
         self.assertNotIn("改從變卦取互", buf.getvalue())
+
+    def test_print_result_emits_every_section(self):
+        """新增的錯卦／綜卦／爻位盤都必須真的印出來——爻位盤更是「每卦必出」。"""
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            print_result(qigua_by_time(2024, 1, 15, 10))
+        out = buf.getvalue()
+        for section in ["【二、本卦】", "【三、體用分析】", "【三之二、卦氣旺衰】",
+                        "【四、互卦】", "【五、變卦】", "【六、錯卦",
+                        "【七、綜卦", "【八、爻位盤"]:
+            with self.subTest(section=section):
+                self.assertIn(section, out)
+        self.assertIn("卦德（參考", out)
+
+    def test_yao_board_marks_the_moving_line(self):
+        """★ 必須標在動爻那一列，且六爻由上而下列出"""
+        result = qigua_by_time(2024, 1, 15, 10)
+        dong_name = result["爻位盤"]["六爻"][result["本卦"]["動爻位"] - 1]["名稱"]
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            print_result(result)
+        starred = [ln for ln in buf.getvalue().splitlines() if "★" in ln]
+        self.assertEqual(len(starred), 1, f"應恰好一列標星，實得 {starred}")
+        self.assertIn(dong_name, starred[0])
+
+    def test_number_cast_omits_season_only_sections(self):
+        """數字起卦無日期→無時令；旺衰該從缺，但爻位盤/錯/綜是結構的，仍要出"""
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            print_result(qigua_by_numbers(6, 8))
+        out = buf.getvalue()
+        self.assertNotIn("卦氣旺衰", out)
+        self.assertIn("【八、爻位盤", out)
+        self.assertIn("【六、錯卦", out)
 
     def test_print_strategy_advice_emits_next_step(self):
         """每個策略碼都必須輸出對應的【下一步】——SKILL.md 明定不可省略"""

@@ -84,14 +84,35 @@ LUNAR_START_DATE = date(1900, 1, 31)
 
 # 先天八卦數對應
 BAGUA = {
-    1: {"name": "乾", "symbol": "☰", "binary": "111", "element": "金", "family": "父"},
-    2: {"name": "兌", "symbol": "☱", "binary": "011", "element": "金", "family": "少女"},
-    3: {"name": "離", "symbol": "☲", "binary": "101", "element": "火", "family": "中女"},
-    4: {"name": "震", "symbol": "☳", "binary": "001", "element": "木", "family": "長男"},
-    5: {"name": "巽", "symbol": "☴", "binary": "110", "element": "木", "family": "長女"},
-    6: {"name": "坎", "symbol": "☵", "binary": "010", "element": "水", "family": "中男"},
-    7: {"name": "艮", "symbol": "☶", "binary": "100", "element": "土", "family": "少男"},
-    8: {"name": "坤", "symbol": "☷", "binary": "000", "element": "土", "family": "母"},
+    1: {"name": "乾", "symbol": "☰", "binary": "111", "element": "金", "family": "父",   "de": "健"},
+    2: {"name": "兌", "symbol": "☱", "binary": "011", "element": "金", "family": "少女", "de": "說"},
+    3: {"name": "離", "symbol": "☲", "binary": "101", "element": "火", "family": "中女", "de": "麗"},
+    4: {"name": "震", "symbol": "☳", "binary": "001", "element": "木", "family": "長男", "de": "動"},
+    5: {"name": "巽", "symbol": "☴", "binary": "110", "element": "木", "family": "長女", "de": "入"},
+    6: {"name": "坎", "symbol": "☵", "binary": "010", "element": "水", "family": "中男", "de": "陷"},
+    7: {"name": "艮", "symbol": "☶", "binary": "100", "element": "土", "family": "少男", "de": "止"},
+    8: {"name": "坤", "symbol": "☷", "binary": "000", "element": "土", "family": "母",   "de": "順"},
+}
+
+# 卦德（《說卦傳》「乾健也，坤順也，震動也……」）：八卦的性情取向。
+# 相對於五行生剋的「強弱判決」，卦德給的是「象的關係」——兩者互補，皆為透鏡非判決。
+GUADE_INTENT = {
+    "健": "剛健主導、進取不息",
+    "說": "和悅交流、取悅外應",
+    "麗": "附麗顯明、依託而光",
+    "動": "起而行動、振奮求變",
+    "入": "漸進順入、謙伏滲透",
+    "陷": "涉險應變、勞心趨流",
+    "止": "靜止守成、止於其所",
+    "順": "柔順承載、包容隨順",
+}
+
+# 四組傳統對舉的卦德兩極；不在表中者僅作「性質不同」處理，不強行編派吉凶。
+_GUADE_POLAR = {
+    frozenset({"健", "順"}): "一剛一柔：主導與承載之間，看你要推進還是承接",
+    frozenset({"動", "止"}): "一動一靜：進與守的拉扯，急動或久守都不易",
+    frozenset({"陷", "麗"}): "一陷一明：身處險而前方有明，關鍵在能否脫險見光",
+    frozenset({"說", "入"}): "一悅一巽：外和而內順，宜柔不宜剛",
 }
 
 # 六十四卦名稱
@@ -296,6 +317,17 @@ def get_hu_gua(binary: str) -> Tuple[int, int]:
     return BINARY_TO_GUA[binary[1:4]], BINARY_TO_GUA[binary[2:5]]
 
 
+def get_cuo_gua(binary: str) -> Tuple[int, int]:
+    """計算錯卦（陰陽全反：六爻每位翻轉）→ 上下卦數"""
+    flipped = "".join("0" if b == "1" else "1" for b in binary)
+    return binary_to_gua_pair(flipped)
+
+
+def get_zong_gua(binary: str) -> Tuple[int, int]:
+    """計算綜卦（上下顛倒：整卦翻轉）→ 上下卦數"""
+    return binary_to_gua_pair(binary[::-1])
+
+
 # 五行相生相剋（模組層級，供生剋與旺衰共用同一份真相）
 WUXING_SHENG = {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"}
 WUXING_KE = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
@@ -362,6 +394,94 @@ def analyze_wuxing(ti_element: str, yong_element: str) -> str:
     return "未知關係"
 
 
+def analyze_guade(ti_gua: int, yong_gua: int) -> str:
+    """以卦德交互給出『象的關係』描述（互補於五行生剋，皆為參考透鏡，非判決）。"""
+    ti_de, yong_de = BAGUA[ti_gua]["de"], BAGUA[yong_gua]["de"]
+    head = (f"你（體・{BAGUA[ti_gua]['name']}）傾向「{GUADE_INTENT[ti_de]}」，"
+            f"處境（用・{BAGUA[yong_gua]['name']}）正在「{GUADE_INTENT[yong_de]}」")
+    if ti_de == yong_de:
+        note = "同德相應，內外方向一致，順勢即可"
+    else:
+        note = _GUADE_POLAR.get(frozenset({ti_de, yong_de}),
+                                "兩股力性質不同，端看你如何在其間取捨")
+    return f"{head}。{note}（{ti_de}遇{yong_de}）"
+
+
+def _yao_name(position: int, is_yang: bool) -> str:
+    """爻的傳統名稱，如 初九、六二、九五、上六。"""
+    yinyang = "九" if is_yang else "六"
+    if position == 1:
+        return "初" + yinyang
+    if position == 6:
+        return "上" + yinyang
+    return yinyang + {2: "二", 3: "三", 4: "四", 5: "五"}[position]
+
+
+def analyze_yao_positions(binary: str, dong_yao: int) -> Dict:
+    """結構性爻位盤：六爻當位(得正)/得中/應(對爻)/承乘。
+
+    純結構決定性分析（非文本統計），每次起卦必出。
+    binary 為頂到底字串：index0=第6爻(上)，index5=第1爻(初)。
+
+    ※ 出處說明：當位/得中/相應/承乘出自《周易》義理（彖象傳一路的爻位學），
+    《梅花易數》原書並不使用。本專案有意加掛這一層作為結構性補充——它是後加的
+    透鏡，不是邵雍原法；錯卦/綜卦同理（屬卦變之學）。勿當作原書步驟引述。
+    """
+    is_yang = {i: binary[6 - i] == "1" for i in range(1, 7)}
+
+    lines = []
+    for i in range(1, 7):
+        yang = is_yang[i]
+        # 當位（得正）：陽居奇位、陰居偶位
+        dangwei = (yang and i % 2 == 1) or (not yang and i % 2 == 0)
+        # 應（對爻）：初四、二五、三上，一陰一陽為有應
+        partner = i + 3 if i <= 3 else i - 3
+        lines.append({
+            "位": i,
+            "名稱": _yao_name(i, yang),
+            "陰陽": "陽" if yang else "陰",
+            "當位": "得正" if dangwei else "失正",
+            "得中": "得中" if i in (2, 5) else "",
+            "應位": partner,
+            "應爻名稱": _yao_name(partner, is_yang[partner]),
+            "有應": is_yang[i] != is_yang[partner],
+        })
+
+    # 承乘：相鄰兩爻，標記兩極。標於上爻。
+    # 古法「乘」只用於陰居陽上（柔乘剛），故陰乘陽為本名；反之陽居陰上，其古名
+    # 是下方之陰「承」上方之陽（陰承陽），並無「陽乘陰」一詞——勿自創該詞。
+    # 標記掛在上爻，故以「下陰承陽」點明是下爻在承。
+    chengcheng = {}
+    for i in range(2, 7):
+        if not is_yang[i] and is_yang[i - 1]:
+            chengcheng[i] = "陰乘陽（柔凌剛·最不穩）"
+        elif is_yang[i] and not is_yang[i - 1]:
+            chengcheng[i] = "下陰承陽（柔承剛·最順）"
+    for ln in lines:
+        ln["承乘"] = chengcheng.get(ln["位"], "")
+
+    # 二五中正相應：二有應且二五皆得正——最強外援徵象
+    er, wu = lines[1], lines[4]
+    zhongzheng = er["有應"] and er["當位"] == "得正" and wu["當位"] == "得正"
+
+    # 動爻處境摘要
+    d = lines[dong_yao - 1]
+    parts = [d["當位"]]
+    parts.append("有應" if d["有應"] else f"無應(↔{d['應爻名稱']}同性)")
+    if d["承乘"]:
+        parts.append(d["承乘"])
+    # 動爻是否被上爻陰乘（柔凌剛壓於其上）
+    if dong_yao < 6 and chengcheng.get(dong_yao + 1, "").startswith("陰乘陽"):
+        parts.append(f"上被{lines[dong_yao]['名稱']}陰乘")
+    dong_summary = f"{d['名稱']}（動）：" + "·".join(parts)
+
+    return {
+        "六爻": lines,
+        "二五中正相應": zhongzheng,
+        "動爻摘要": dong_summary,
+    }
+
+
 def _analyze_hexagram(upper_gua: int, lower_gua: int, dong_yao: int,
                       season: Optional[str] = None) -> Dict:
     """分析卦象（本卦、體用、互卦、變卦）。
@@ -391,6 +511,17 @@ def _analyze_hexagram(upper_gua: int, lower_gua: int, dong_yao: int,
     hu_upper, hu_lower = get_hu_gua(bian_binary if hu_from_bian else hexagram_binary)
     hu_info = HEXAGRAMS.get((hu_upper, hu_lower), (0, "未知卦"))
 
+    # 錯卦（陰陽全反）：看「同一處境的完全相反面」。
+    cuo_upper, cuo_lower = get_cuo_gua(hexagram_binary)
+    cuo_info = HEXAGRAMS.get((cuo_upper, cuo_lower), (0, "未知卦"))
+
+    # 綜卦（上下顛倒）：看「對方/旁觀者眼中的同一件事」。
+    zong_upper, zong_lower = get_zong_gua(hexagram_binary)
+    zong_info = HEXAGRAMS.get((zong_upper, zong_lower), (0, "未知卦"))
+
+    # 動爻陰陽（從下往上數，bit 6-dong_yao）；陽爻=1
+    moving_is_yang = hexagram_binary[6 - dong_yao] == "1"
+
     # 五行生克
     ti_element = BAGUA[ti_gua]["element"]
     yong_element = BAGUA[yong_gua]["element"]
@@ -403,12 +534,16 @@ def _analyze_hexagram(upper_gua: int, lower_gua: int, dong_yao: int,
             "下卦": f"{BAGUA[lower_gua]['name']} {BAGUA[lower_gua]['symbol']}",
             "二進位": hexagram_binary,
             "動爻": f"第{dong_yao}爻",
+            "動爻位": dong_yao,
+            "動爻陰陽": "陽" if moving_is_yang else "陰",
         },
         "體用": {
-            "體卦": f"{BAGUA[ti_gua]['name']}（{ti_pos}）- {ti_element}",
-            "用卦": f"{BAGUA[yong_gua]['name']}（{yong_pos}）- {yong_element}",
+            "體卦": f"{BAGUA[ti_gua]['name']}（{ti_pos}）- {ti_element}・{BAGUA[ti_gua]['de']}",
+            "用卦": f"{BAGUA[yong_gua]['name']}（{yong_pos}）- {yong_element}・{BAGUA[yong_gua]['de']}",
             "生克關係": analyze_wuxing(ti_element, yong_element),
+            "卦德關係": analyze_guade(ti_gua, yong_gua),
         },
+        "爻位盤": analyze_yao_positions(hexagram_binary, dong_yao),
         "互卦": {
             "名稱": hu_info[1],
             "上互": BAGUA[hu_upper]['name'],
@@ -419,6 +554,18 @@ def _analyze_hexagram(upper_gua: int, lower_gua: int, dong_yao: int,
             "序號": bian_info[0],
             "名稱": bian_info[1],
             "二進位": bian_binary,
+        },
+        "錯卦": {
+            "名稱": cuo_info[1],
+            "上卦": BAGUA[cuo_upper]['name'],
+            "下卦": BAGUA[cuo_lower]['name'],
+            "讀法": "陰陽全反——同一處境的完全相反面，照出你沒看到的另一端",
+        },
+        "綜卦": {
+            "名稱": zong_info[1],
+            "上卦": BAGUA[zong_upper]['name'],
+            "下卦": BAGUA[zong_lower]['name'],
+            "讀法": "上下顛倒——換對方/旁觀者的角度看同一件事",
         },
     }
     if season:
@@ -507,18 +654,79 @@ def qigua_by_gregorian_time(year: int, month: int, day: int, hour: int) -> Dict:
     return result
 
 
-def qigua_by_numbers(num1: int, num2: int, num3: Optional[int] = None) -> Dict:
+def qigua_by_time_precise(year: int, month: int, day: int,
+                          hour: int, minute: int, second: int,
+                          is_leap: bool = False) -> Dict:
+    """以農曆時間 + 分秒起卦（今人精確擴充，非邵雍原法）。
+
+    解決純時辰起卦的問題：同一時辰（2小時）內任何時刻同卦。
+    分入下卦、秒入動爻，使同一時辰內不同時刻得不同卦。
+    年/月/日為農曆；時/分/秒為時鐘讀數。
+    """
+    year, month, day, is_leap, rolled = _apply_zishi(year, month, day, hour, is_leap)
+    year_num, year_dizhi = get_year_dizhi(year)
+    shichen_num, shichen_name = get_shichen(hour)
+
+    upper_sum = year_num + month + day + shichen_num
+    lower_sum = upper_sum + minute
+    dong_sum = lower_sum + second
+
+    upper_gua = num_to_gua(upper_sum)
+    lower_gua = num_to_gua(lower_sum)
+    dong_yao = num_to_yao(dong_sum)
+
+    season = get_season(year, month, day, is_leap)
+    result = _analyze_hexagram(upper_gua, lower_gua, dong_yao, season)
+    result["計算過程"] = {
+        "年數": f"{year_dizhi}年 ({year_num})",
+        "月數": month,
+        "日數": day,
+        "時辰": f"{shichen_name}時 ({shichen_num})",
+        "分": minute,
+        "秒": second,
+        "上卦數": f"(年+月+日+時辰)={upper_sum} mod 8 = {upper_gua}",
+        "下卦數": f"(上+分)={lower_sum} mod 8 = {lower_gua}",
+        "動爻數": f"(下+秒)={dong_sum} mod 6 = {dong_yao}",
+        "備註": "分入下卦、秒入動爻（今人精確擴充，非邵雍原法）",
+    }
+    if rolled:
+        result["計算過程"]["子時推日"] = "日始於子時，23時已入次日，日數取次日"
+    return result
+
+
+def qigua_by_gregorian_time_precise(year: int, month: int, day: int,
+                                    hour: int, minute: int, second: int) -> Dict:
+    """以西曆時間 + 分秒起卦（自動轉農曆；今人精確擴充）。"""
+    lunar_year, lunar_month, lunar_day, is_leap = gregorian_to_lunar(year, month, day)
+    result = qigua_by_time_precise(lunar_year, lunar_month, lunar_day,
+                                   hour, minute, second, is_leap)
+    lunar_text, rolled = _lunar_display(lunar_year, lunar_month, lunar_day, hour, is_leap)
+    note = "梅花易數使用農曆計算（分秒為今人精確擴充）"
+    if rolled:
+        note += "；23時屬次日子時，農曆日已推次日（日始於子時）"
+    result["日期轉換"] = {
+        "西曆": f"{year}年{month}月{day}日 {hour:02d}:{minute:02d}:{second:02d}",
+        "農曆": lunar_text,
+        "說明": note,
+    }
+    return result
+
+
+def qigua_by_numbers(num1: int, num2: int, num3: Optional[int] = None,
+                     season: Optional[str] = None) -> Dict:
     """以數字起卦。
 
     動爻恆取「總數除六」（原書 卷一・數字占）：兩數則 (num1+num2)、三數則
     (num1+num2+num3)。三數時只取 num3 是常見的今人簡法，非原書之法。
+
+    season 由 qigua_by_numbers_at 提供；純數字起卦無日期即無時令，該節從缺。
     """
     upper_gua = num_to_gua(num1)
     lower_gua = num_to_gua(num2)
     total = num1 + num2 + (num3 if num3 is not None else 0)
     dong_yao = num_to_yao(total)
 
-    result = _analyze_hexagram(upper_gua, lower_gua, dong_yao)
+    result = _analyze_hexagram(upper_gua, lower_gua, dong_yao, season)
     dong_expr = f"({num1}+{num2}) mod 6 = {dong_yao}" if num3 is None \
         else f"({num1}+{num2}+{num3}) mod 6 = {dong_yao}"
     result["計算過程"] = {
@@ -526,6 +734,29 @@ def qigua_by_numbers(num1: int, num2: int, num3: Optional[int] = None) -> Dict:
         "第二數": f"{num2} → {num2} mod 8 = {lower_gua} → {BAGUA[lower_gua]['name']}",
         "動爻": dong_expr,
     }
+    return result
+
+
+def qigua_by_numbers_at(year: int, month: int, day: int, hour: int,
+                        num1: int, num2: int,
+                        num3: Optional[int] = None) -> Dict:
+    """數字起卦 + 占時（西曆），使【卦氣旺衰】可用。
+
+    卦氣旺衰只需月令，與起卦之數無關：日期不入上下卦、不入動爻，僅用來定時令。
+    23 時照「日始於子時」推日，故與同一時刻的時間起卦落在同一個農曆日、同一個
+    時令，不會兩處說法不同。
+    """
+    lunar_year, lunar_month, lunar_day, is_leap = gregorian_to_lunar(year, month, day)
+    l_year, l_month, l_day, leap, rolled = _apply_zishi(
+        lunar_year, lunar_month, lunar_day, hour, is_leap)
+    result = qigua_by_numbers(num1, num2, num3,
+                              get_season(l_year, l_month, l_day, leap))
+    lunar_text, _ = _lunar_display(lunar_year, lunar_month, lunar_day, hour, is_leap)
+    note = (f"西曆{year}年{month}月{day}日{hour}時（農曆{lunar_text}）"
+            "——僅定時令（卦氣旺衰），不入起卦之數")
+    if rolled:
+        note += "；23時屬次日子時，農曆日已推次日（日始於子時）"
+    result["計算過程"]["占時"] = note
     return result
 
 
@@ -770,7 +1001,9 @@ def print_result(result: Dict):
     ty = result["體用"]
     print(f"  體卦：{ty['體卦']}")
     print(f"  用卦：{ty['用卦']}")
-    print(f"  生克：{ty['生克關係']}")
+    print(f"  生克（五行・參考）：{ty['生克關係']}")
+    if "卦德關係" in ty:
+        print(f"  卦德（參考・解釋力更強）：{ty['卦德關係']}")
 
     if "卦氣旺衰" in result:
         ws = result["卦氣旺衰"]
@@ -788,6 +1021,29 @@ def print_result(result: Dict):
     bian = result["變卦"]
     print(f"  第 {bian['序號']} 卦：{bian['名稱']}")
     print(f"  二進位：{bian['二進位']}")
+
+    if "錯卦" in result:
+        cuo = result["錯卦"]
+        print("\n【六、錯卦（反爻・互補面）】")
+        print(f"  {cuo['名稱']}（上{cuo['上卦']}下{cuo['下卦']}）— {cuo['讀法']}")
+    if "綜卦" in result:
+        zong = result["綜卦"]
+        print("\n【七、綜卦（反爻・對方視角）】")
+        print(f"  {zong['名稱']}（上{zong['上卦']}下{zong['下卦']}）— {zong['讀法']}")
+
+    if "爻位盤" in result:
+        yp = result["爻位盤"]
+        dong = ben['動爻位']
+        print("\n【八、爻位盤（結構・每卦必出）】")
+        for ln in reversed(yp["六爻"]):  # 從上爻往下顯示
+            mark = "★" if ln["位"] == dong else "　"
+            zhong = f"·{ln['得中']}" if ln["得中"] else ""
+            ying = ("應↔" if ln["有應"] else "無應↔") + ln["應爻名稱"]
+            cc = f"·{ln['承乘']}" if ln["承乘"] else ""
+            print(f"  {mark}{ln['名稱']}（{ln['陰陽']}）：{ln['當位']}{zhong}·{ying}{cc}")
+        if yp["二五中正相應"]:
+            print("  ※ 二五中正相應——最強外援徵象")
+        print(f"  → 動爻處境：{yp['動爻摘要']}")
 
     # 添加策略建議
     hex_num = ben['序號']
@@ -810,10 +1066,17 @@ if __name__ == "__main__":
     configure_stdout()
 
     if len(sys.argv) > 1:
-        if sys.argv[1] == "time":
+        if sys.argv[1] in ("time", "time-precise"):
+            # 預設秒精度：避免同一時辰（2hr）內任何時刻都得同一卦
+            now = datetime.now()
+            result = qigua_by_gregorian_time_precise(
+                now.year, now.month, now.day, now.hour, now.minute, now.second)
+            print(f"\n起卦時間：{now.strftime('%Y年%m月%d日 %H:%M:%S')}（西曆，秒精度・預設）")
+        elif sys.argv[1] == "time-shichen":
+            # 傳統時辰精度（2hr）
             now = datetime.now()
             result = qigua_by_gregorian_time(now.year, now.month, now.day, now.hour)
-            print(f"\n起卦時間：{now.strftime('%Y年%m月%d日 %H:%M')}（西曆）")
+            print(f"\n起卦時間：{now.strftime('%Y年%m月%d日 %H時')}（西曆，傳統時辰精度）")
         elif sys.argv[1] == "lunar" and len(sys.argv) >= 5:
             year = int(sys.argv[2])
             month = int(sys.argv[3])
@@ -832,7 +1095,12 @@ if __name__ == "__main__":
             num1 = int(sys.argv[2])
             num2 = int(sys.argv[3])
             num3 = int(sys.argv[4]) if len(sys.argv) > 4 else None
-            result = qigua_by_numbers(num1, num2, num3)
+            # 占時取執行當下：此腳本在占卜當時、在占者機器上跑，now() 就是占時，
+            # 與 time 模式同一來源。日期只定時令，不入起卦之數。
+            now = datetime.now()
+            result = qigua_by_numbers_at(now.year, now.month, now.day, now.hour,
+                                         num1, num2, num3)
+            print(f"\n占時：{now.strftime('%Y年%m月%d日 %H時')}（僅供卦氣旺衰）")
         elif sys.argv[1] == "convert" and len(sys.argv) >= 5:
             year = int(sys.argv[2])
             month = int(sys.argv[3])
@@ -843,7 +1111,8 @@ if __name__ == "__main__":
             sys.exit(0)
         else:
             print("用法：")
-            print("  python meihua_calc.py time                     # 以當前時間起卦")
+            print("  python meihua_calc.py time                     # 當前時間起卦（秒精度・預設）")
+            print("  python meihua_calc.py time-shichen             # 當前時間起卦（傳統時辰精度）")
             print("  python meihua_calc.py gregorian 2024 1 18 14   # 以西曆日期起卦")
             print("  python meihua_calc.py lunar 2024 12 8 14       # 以農曆日期起卦")
             print("  python meihua_calc.py num 6 8 9                # 以數字起卦")
@@ -851,7 +1120,8 @@ if __name__ == "__main__":
             sys.exit(1)
     else:
         now = datetime.now()
-        result = qigua_by_gregorian_time(now.year, now.month, now.day, now.hour)
-        print(f"\n起卦時間：{now.strftime('%Y年%m月%d日 %H:%M')}（西曆）")
+        result = qigua_by_gregorian_time_precise(
+            now.year, now.month, now.day, now.hour, now.minute, now.second)
+        print(f"\n起卦時間：{now.strftime('%Y年%m月%d日 %H:%M:%S')}（西曆，秒精度・預設）")
 
     print_result(result)
