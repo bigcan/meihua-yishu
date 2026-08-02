@@ -98,9 +98,9 @@ If you add a new historical rule, prefer adding a test that references its prima
 
 ## Ethics and tone (from `ETHICS.md`)
 
-The skill is constrained to non-deterministic language ("傾向", "可能", never "一定"); must present both auspicious and inauspicious readings; will not predict death timing; redirects medical/legal/financial questions to professionals; and offers crisis resources if a querent indicates self-harm. Preserve these constraints when editing `SKILL.md`.
+The skill is constrained to non-deterministic language ("傾向", "可能", never "一定"); must present both auspicious and inauspicious readings; will not predict death timing; redirects medical/legal/financial questions to professionals; and does not perform divination on self-harm topics. Preserve these constraints when editing `SKILL.md`.
 
-The crisis path lives in `SKILL.md` itself (section 危機處理), not only in `ETHICS.md` — `SKILL.md` is the sole file loaded when the skill fires, so a rule that exists only in `ETHICS.md` never reaches runtime. That section carries concrete hotlines plus an explicit instruction never to invent a number. **Keep the resources in `SKILL.md`**, and if you revise them, verify against current official sources rather than editing from memory.
+`SKILL.md` deliberately carries **no hotline numbers or region-specific crisis resources** — that was tried and removed as unhelpful. Do not re-add them; a hardcoded number in a prompt file goes stale and cannot be verified from inside the repo. Rely on the model's own handling instead.
 
 ## License note
 
