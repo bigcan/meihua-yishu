@@ -1,6 +1,6 @@
 ---
 name: meihua-yishu
-description: Meihua Yishu (梅花易數) + 金錢卦/納甲（六爻）雙系統 I Ching divination skill. Use when users request divination, fortune telling, hexagram casting, or character analysis (測字). Triggers on: 占卜, 算卦, 問卦, 起卦, 解卦, 測字, 拆字, 金錢卦, 六爻, 納甲, 世應, 用神, 火珠林, meihua, plum blossom, I Ching divination, 梅花易數.
+description: 'Meihua Yishu (梅花易數) + 金錢卦/納甲（六爻）雙系統 I Ching divination skill. Use when users request divination, fortune telling, hexagram casting, or character analysis (測字). Triggers on: 占卜, 算卦, 問卦, 起卦, 解卦, 測字, 拆字, 金錢卦, 六爻, 納甲, 世應, 用神, 火珠林, meihua, plum blossom, I Ching divination, 梅花易數.'
 ---
 梅花易數占卜技能
 梅花易數（梅花心易）專業占卜系統。相傳為宋代邵雍（邵康節）所創。
