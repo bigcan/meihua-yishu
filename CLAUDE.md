@@ -8,7 +8,8 @@ This is **not a typical application repo** — it is the source of the `meihua-y
 
 1. **`SKILL.md`** — the skill manifest and decision flow Claude follows when the skill activates (frontmatter + 500-line prompt). This is the canonical behavior spec; treat changes to it as user-facing changes.
 2. **`references/*.md`** — knowledge base read on demand during a divination (64 hexagrams, line texts, bagua correspondences, strategy tables, classics in `references/classics/`).
-3. **`scripts/*.py`** — three small calculators (Meihua casting, coin-toss casting, Najia / six-relatives annotation) plus tests. `fetch_classics.py` is a one-off downloader for ctext.org mirrors.
+3. **`scripts/*.py`** — three small calculators (Meihua casting, coin-toss casting, Najia / six-relatives annotation) plus tests. `fetch_classics.py` is a one-off downloader for ctext.org mirrors; `build_package.py` packages the repo for Cowork / claude.ai (see [Distribution](#distribution-three-install-shapes-one-source)).
+4. **`.claude-plugin/`** — `plugin.json` + `marketplace.json`, which let the same tree install as a Claude Code plugin instead of a bare skill.
 
 When a request changes divination behavior, decide whether it belongs in `SKILL.md` (decision flow / mandatory output format), a `references/*.md` (lookup data), or `scripts/*.py` (a computation). Most changes go in markdown, not code.
 
@@ -17,7 +18,7 @@ When a request changes divination behavior, decide whether it belongs in `SKILL.
 All from repo root. There are no build/lint steps and no third-party deps for the core scripts.
 
 ```bash
-# Full test suite (207 tests across 7 risk tiers; ~12 s — Tier 7 spawns subprocesses)
+# Full test suite (222 tests across 8 risk tiers; ~13 s — Tiers 7–8 spawn subprocesses)
 python -m unittest discover -s scripts -p "test_*.py"
 
 # Run a single tier
@@ -40,6 +41,9 @@ python scripts/jinqian_gua.py interactive
 
 # Refresh classics mirror from ctext.org (rarely needed)
 python scripts/fetch_classics.py batch
+
+# Build the Cowork / claude.ai upload packages into dist/ (gitignored)
+python scripts/build_package.py
 ```
 
 The `experiments/prediction-validation/` subproject has its own `requirements.txt` and venv — it is unrelated to the skill itself (it tests whether the skill has predictive value on Polymarket). Don't touch unless asked.
@@ -58,6 +62,24 @@ The `experiments/prediction-validation/` subproject has its own `requirements.tx
 **The percentages are a text metric, not a probability.** They are 爻辭吉語比例 — auspicious-word density across the 384 line texts, from the sibling project `muyen/decoding-iching`, whose author has since retracted the hexagram-level classification (n=6 lines per hexagram; shuffled labels give equally extreme "attractors", p=0.35/0.52). This fork keeps the layer for ranking the *tone* of change-paths and labels it honestly everywhere it surfaces. Never render it as 吉率 or as a success probability in user-facing output. Whether to follow upstream and delete the layer outright is an open decision — don't resolve it unilaterally.
 
 If you change the interpretation flow or the strategy output format, update **both** `SKILL.md` and the relevant `references/*.md` — the skill instructs Claude to read those files mid-conversation, so a contradiction will produce inconsistent readings.
+
+## Distribution: three install shapes, one source
+
+The repo root *is* the skill (`SKILL.md` + `references/` + `scripts/`), and `.claude-plugin/plugin.json` also makes it a plugin, with `.claude-plugin/marketplace.json` making it its own single-plugin marketplace. Nothing is duplicated in-tree; `scripts/build_package.py` assembles the other two shapes into `dist/` (gitignored):
+
+| Target | Artifact | Layout inside the archive |
+| --- | --- | --- |
+| Claude Code | the repo itself | `SKILL.md` at plugin root |
+| Cowork upload | `meihua-yishu.plugin` + identical `.zip` | `.claude-plugin/plugin.json` at zip root, skill under `skills/meihua-yishu/` |
+| claude.ai chat Skills upload | `meihua-yishu-skill.zip` | one top folder `meihua-yishu/` |
+
+Three things the build enforces, each of which fails **silently** if broken (the skill still appears, it just never triggers or reads a missing file) — Tier 8 `test_packaging.py` guards all of them:
+
+- **The frontmatter `description` must be quoted.** It contains `Triggers on: `, and an unquoted YAML scalar with a colon-space makes the *whole* frontmatter fail to parse, so the skill loads with empty metadata and none of its keywords count. This was a live bug until 2026-08-02.
+- **claude.ai caps `description` at 200 chars** (the spec allows 1024). `PACKAGED_DESCRIPTION` in `build_package.py` is the shortened version used by *both* packages, so a person with the skill in chat and the plugin in Cowork gets the same triggering. Edit trigger keywords there, not in `SKILL.md`, when the change is packaging-only.
+- **`ETHICS.md` / `ETHICS.zh-TW.md` ship inside the skill folder.** `SKILL.md` points at "專案根目錄 ETHICS.md", and for a packaged skill the root is the skill folder.
+
+`experiments/`, `CLAUDE.md`, tests, and `__pycache__` are excluded from both packages. `dist/` is not committed — rebuild it.
 
 ## Code structure
 
@@ -83,7 +105,7 @@ The skill's decision tree in `SKILL.md` routes to specific files; keep filenames
 
 ## Tests as documentation
 
-The test files are organized as 7 "risk tiers" and are also the most readable spec of the historical rules being enforced:
+The test files are organized as 8 "risk tiers" and are also the most readable spec of the historical rules being enforced:
 
 - Tier 1 `test_coordinate_system.py` — binary ↔ hexagram conversion, changing-line index, mutual hex
 - Tier 2 `test_palace_system.py` — Jing Fang's 8-palace attribution, world/response positions
@@ -93,7 +115,9 @@ The test files are organized as 7 "risk tiers" and are also the most readable sp
 - Tier 6 `test_meihua_qigua.py` — end-to-end Meihua casting incl. Shao Yong's plum-blossom case; 體用生剋 all 5 relations; 旺衰 derivation vs. both markdown tables; 爻位盤 anchored on 既濟 (all 當位) / 未濟 (all 失正); 錯/綜 involution over all 64; 卦德 vs 《說卦傳》; strategy change-paths and md↔code sync
 - Tier 7 `test_output_path.py` — what the user actually receives: CLI under cp950/cp437/ascii consoles, every `print_result` section, the strategy accessors, and the coin-casting entry point (incl. the 1/8·3/8·3/8·1/8 three-coin distribution)
 
-Tiers 1–6 run in ~10 ms; Tier 7 takes ~12 s because it spawns subprocesses to test real console encodings.
+- Tier 8 `test_packaging.py` — whether it installs at all: frontmatter is parseable YAML, the three manifests agree on `name`, the packaged description fits claude.ai's 200-char cap, both archive layouts, no dev files shipped, every `references/*.md` cited by `SKILL.md` is in the package, and the extracted scripts still run
+
+Tiers 1–6 run in ~10 ms; Tier 7 takes ~12 s because it spawns subprocesses to test real console encodings, and Tier 8 ~1 s (it builds both packages and runs one extracted CLI).
 
 If you add a new historical rule, prefer adding a test that references its primary source (《增刪卜易》《卜筮正宗》《易學啟蒙》《梅花易數》) over inline comments.
 

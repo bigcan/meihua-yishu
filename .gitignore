@@ -19,3 +19,6 @@ venv/
 
 # Tests (local only)
 tests/
+
+# Build output (scripts/build_package.py)
+dist/

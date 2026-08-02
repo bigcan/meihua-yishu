@@ -126,6 +126,37 @@ git clone https://github.com/muyen/meihua-yishu.git .claude/skills/meihua-yishu
 
 安裝後，提及占卜相關詞彙如「占卦」、「起卦」、「梅花易數」，技能會自動啟用。
 
+**作為 plugin 安裝：** 本 repo 同時也是合法的 Claude Code plugin，且自身就是一個單一外掛的 marketplace。
+```bash
+# 從 GitHub（或用本機路徑：/plugin marketplace add ./meihua-yishu）
+/plugin marketplace add bigcan/meihua-yishu
+/plugin install meihua-yishu@meihua-yishu
+```
+
+### Claude Cowork
+
+先打包，再到 **Customize → Plugins → 上傳** 安裝：
+```bash
+python scripts/build_package.py
+# → dist/meihua-yishu.plugin（另有內容完全相同的 dist/meihua-yishu.zip）
+```
+上傳對話框收 `.plugin` 就用 `.plugin`；部分版本只收 `.zip`
+（[anthropics/claude-code#28337](https://github.com/anthropics/claude-code/issues/28337)），
+兩個檔案位元組相同，哪個收就用哪個。
+
+也可以在 Plugins 頁面用網址把本 repo 加為 marketplace（`https://github.com/bigcan/meihua-yishu`）再安裝。
+
+### Claude chat（claude.ai／桌面版 Chat 分頁）
+
+chat 安裝的是 *skill* 而非 plugin，且 description 有 200 字元上限，
+打包腳本會另外產生一份縮短 description 的 zip：
+```bash
+python scripts/build_package.py
+# → dist/meihua-yishu-skill.zip
+```
+到 **Settings → Capabilities → Skills** 上傳並啟用。需付費方案且開啟程式碼執行
+（起卦腳本要在沙箱裡跑）。
+
 ### ChatGPT 自訂 GPT
 
 1. 前往 https://chatgpt.com/gpts/editor 建立新 GPT

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "meihua-yishu",
+  "description": "Single-plugin marketplace for the Meihua Yishu (梅花易數) I Ching divination skill.",
+  "owner": {
+    "name": "Keng Lee",
+    "url": "https://github.com/bigcan"
+  },
+  "plugins": [
+    {
+      "name": "meihua-yishu",
+      "description": "梅花易數 + 金錢卦/納甲（六爻）雙系統占卜。Casts and interprets I Ching hexagrams by time, number, image, or coin toss, with Najia (six-relatives) annotation and a mandatory strategy block.",
+      "author": {
+        "name": "Arsene Lee (muyen)",
+        "url": "https://github.com/muyen/meihua-yishu"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/bigcan/meihua-yishu",
+      "license": "CC-BY-NC-SA-4.0"
+    }
+  ]
+}

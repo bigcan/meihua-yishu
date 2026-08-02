@@ -1,0 +1,24 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "meihua-yishu",
+  "displayName": "梅花易數 Meihua Yishu",
+  "version": "1.8.0",
+  "description": "梅花易數 + 金錢卦/納甲（六爻）雙系統占卜。Casts and interprets I Ching hexagrams by time, number, image, or coin toss, with Najia (six-relatives) annotation and a mandatory strategy block.",
+  "author": {
+    "name": "Arsene Lee (muyen)",
+    "url": "https://github.com/muyen/meihua-yishu"
+  },
+  "homepage": "https://github.com/bigcan/meihua-yishu",
+  "repository": "https://github.com/bigcan/meihua-yishu",
+  "license": "CC-BY-NC-SA-4.0",
+  "keywords": [
+    "i-ching",
+    "divination",
+    "meihua",
+    "plum-blossom",
+    "梅花易數",
+    "六爻",
+    "納甲",
+    "測字"
+  ]
+}

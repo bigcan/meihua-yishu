@@ -127,6 +127,36 @@ git clone https://github.com/muyen/meihua-yishu.git .claude/skills/meihua-yishu
 
 Once installed, mention divination keywords like "占卦", "起卦", or "meihua" — the skill will activate automatically.
 
+As a plugin: this repo is also a valid Claude Code plugin and its own single-plugin marketplace.
+```bash
+# From GitHub (or a local path: /plugin marketplace add ./meihua-yishu)
+/plugin marketplace add bigcan/meihua-yishu
+/plugin install meihua-yishu@meihua-yishu
+```
+
+### Claude Cowork
+
+Build the plugin package, then upload it in **Customize → Plugins → upload**:
+```bash
+python scripts/build_package.py
+# → dist/meihua-yishu.plugin  (and an identical dist/meihua-yishu.zip)
+```
+Upload `.plugin` if the dialog accepts it; some builds of the upload dialog only take `.zip`
+([anthropics/claude-code#28337](https://github.com/anthropics/claude-code/issues/28337)) — the two files are byte-identical, so use whichever it takes.
+
+Alternatively, add this repo as a marketplace by URL on the Plugins page (`https://github.com/bigcan/meihua-yishu`) and install from there.
+
+### Claude chat (claude.ai / desktop Chat tab)
+
+Chat installs *skills*, not plugins, and enforces a 200-character description limit — the build
+script emits a separate zip for it with a shortened description:
+```bash
+python scripts/build_package.py
+# → dist/meihua-yishu-skill.zip
+```
+Upload it under **Settings → Capabilities → Skills**, then enable it. Requires a paid plan with
+code execution enabled (the casting scripts run in the sandbox).
+
 ### ChatGPT Custom GPT
 
 1. Create a new GPT at https://chatgpt.com/gpts/editor
