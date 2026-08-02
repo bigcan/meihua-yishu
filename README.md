@@ -129,10 +129,12 @@ Once installed, mention divination keywords like "占卦", "起卦", or "meihua"
 
 As a plugin: this repo is also a valid Claude Code plugin and its own single-plugin marketplace.
 ```bash
-# From GitHub (or a local path: /plugin marketplace add ./meihua-yishu)
-/plugin marketplace add bigcan/meihua-yishu
-/plugin install meihua-yishu@meihua-yishu
+claude plugin marketplace add bigcan/meihua-yishu   # or a local path: ./meihua-yishu
+claude plugin install meihua-yishu@meihua-yishu
 ```
+These are shell commands. Inside an interactive Claude Code session the equivalents are the
+`/plugin marketplace add` and `/plugin install` slash commands — those are typed at the Claude
+prompt, not in a terminal, and the desktop app offers a plugin browser instead.
 
 ### Claude Cowork
 

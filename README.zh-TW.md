@@ -128,10 +128,12 @@ git clone https://github.com/muyen/meihua-yishu.git .claude/skills/meihua-yishu
 
 **作為 plugin 安裝：** 本 repo 同時也是合法的 Claude Code plugin，且自身就是一個單一外掛的 marketplace。
 ```bash
-# 從 GitHub（或用本機路徑：/plugin marketplace add ./meihua-yishu）
-/plugin marketplace add bigcan/meihua-yishu
-/plugin install meihua-yishu@meihua-yishu
+claude plugin marketplace add bigcan/meihua-yishu   # 也可用本機路徑：./meihua-yishu
+claude plugin install meihua-yishu@meihua-yishu
 ```
+以上是**終端機指令**。在 Claude Code 互動介面裡對應的是 `/plugin marketplace add`
+與 `/plugin install` 斜線指令——那是打在 Claude 提示字元後面，不是打在終端機裡；
+桌面版則有外掛瀏覽器可用。
 
 ### Claude Cowork
 
