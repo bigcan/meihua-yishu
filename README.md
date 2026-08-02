@@ -56,7 +56,7 @@ Compared to other I Ching methods:
 - Number-based Divination — Cast hexagrams using numbers
 - Sound-based Divination — Cast using the count of sounds heard
 - Color-based Divination — Cast based on colors corresponding to five elements
-- Measurement-based Divination — Cast using object dimensions
+- Measurement-based Divination — Cast using an object's 丈/尺/寸 measurements
 - Direction-based Divination — Cast based on the direction of a person or object
 
 ### Interpretation Functions
@@ -150,7 +150,7 @@ python scripts/meihua_calc.py time
 # Cast hexagram using two numbers
 python scripts/meihua_calc.py num 6 8
 
-# Cast hexagram using three numbers (third is changing line)
+# Cast hexagram using three numbers (changing line = sum of all three, mod 6)
 python scripts/meihua_calc.py num 6 8 3
 ```
 

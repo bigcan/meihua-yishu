@@ -7,7 +7,7 @@ Meihua Yishu (Plum Blossom Numerology) Calculator
 """
 
 from datetime import datetime, date
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 
 # 農曆數據表 (1900-2099)
 # 編碼格式：
@@ -194,6 +194,28 @@ def gregorian_to_lunar(year: int, month: int, day: int) -> Tuple[int, int, int, 
     raise ValueError("日期計算錯誤")
 
 
+def lunar_next_day(year: int, month: int, day: int,
+                   is_leap: bool = False) -> Tuple[int, int, int, bool]:
+    """農曆日期加一天，正確處理月長與閏月轉入。
+
+    子時起卦需要它：原書「日始於子時」，23 時的卦屬次日。
+    """
+    index = year - 1900
+    if not 0 <= index < len(YEAR_INFOS):
+        # 超出曆表範圍：僅遞增日數，讓餘數計算仍可進行
+        return year, month, day + 1, is_leap
+
+    year_info = YEAR_INFOS[index]
+    if day < _month_days(year_info, month, is_leap):
+        return year, month, day + 1, is_leap
+    # 月末：若本月為正月份且該月有閏，次日進入閏月
+    if not is_leap and month == (year_info & 0xF):
+        return year, month, 1, True
+    if month < 12:
+        return year, month + 1, 1, False
+    return year + 1, 1, 1, False
+
+
 # 地支名稱對照
 DIZHI = {
     1: "子", 2: "丑", 3: "寅", 4: "卯", 5: "辰", 6: "巳",
@@ -289,8 +311,10 @@ def _analyze_hexagram(upper_gua: int, lower_gua: int, dong_yao: int) -> Dict:
     bian_upper, bian_lower = binary_to_gua_pair(bian_binary)
     bian_info = HEXAGRAMS.get((bian_upper, bian_lower), (0, "未知卦"))
 
-    # 互卦
-    hu_upper, hu_lower = get_hu_gua(hexagram_binary)
+    # 互卦。乾為天（六陽）、坤為地（六陰）六爻皆同，互卦得本卦自身，無所取象；
+    # 原書因此規定此二卦改從變卦取互。
+    hu_from_bian = hexagram_binary in ("111111", "000000")
+    hu_upper, hu_lower = get_hu_gua(bian_binary if hu_from_bian else hexagram_binary)
     hu_info = HEXAGRAMS.get((hu_upper, hu_lower), (0, "未知卦"))
 
     # 五行生克
@@ -315,6 +339,7 @@ def _analyze_hexagram(upper_gua: int, lower_gua: int, dong_yao: int) -> Dict:
             "名稱": hu_info[1],
             "上互": BAGUA[hu_upper]['name'],
             "下互": BAGUA[hu_lower]['name'],
+            "取自變卦": hu_from_bian,
         },
         "變卦": {
             "序號": bian_info[0],
@@ -324,8 +349,24 @@ def _analyze_hexagram(upper_gua: int, lower_gua: int, dong_yao: int) -> Dict:
     }
 
 
-def qigua_by_time(year: int, month: int, day: int, hour: int) -> Dict:
+def _apply_zishi(year: int, month: int, day: int, hour: int,
+                 is_leap: bool) -> Tuple[int, int, int, bool, bool]:
+    """原書「日始於子時」：23 時已入次日子時，日數取次日。
+
+    唯一的推日處：農曆起卦函式都經過這裡，西曆入口只負責轉換後透傳
+    is_leap，故不會重複推日。夜子時一派主張仍算當日——本專案取日始於
+    子時，此為明確取捨，非疏漏。
+    """
+    if hour != 23:
+        return year, month, day, is_leap, False
+    year, month, day, is_leap = lunar_next_day(year, month, day, is_leap)
+    return year, month, day, is_leap, True
+
+
+def qigua_by_time(year: int, month: int, day: int, hour: int,
+                  is_leap: bool = False) -> Dict:
     """以農曆時間起卦"""
+    year, month, day, is_leap, rolled = _apply_zishi(year, month, day, hour, is_leap)
     year_num, year_dizhi = get_year_dizhi(year)
     shichen_num, shichen_name = get_shichen(hour)
 
@@ -346,33 +387,57 @@ def qigua_by_time(year: int, month: int, day: int, hour: int) -> Dict:
         "下卦數": f"{lower_sum} mod 8 = {lower_gua}",
         "動爻數": f"{lower_sum} mod 6 = {dong_yao}",
     }
+    if rolled:
+        result["計算過程"]["子時推日"] = "日始於子時，23時已入次日，日數取次日"
     return result
+
+
+def _lunar_display(year: int, month: int, day: int, hour: int,
+                   is_leap: bool) -> Tuple[str, bool]:
+    """日期轉換要顯示「實際起卦所用」的農曆日，即子時推日之後的那一天。
+
+    重算一次 _apply_zishi（純函式、同輸入同輸出）比把用到的日期從
+    qigua_by_time 回傳出來更省事，兩處必然一致。
+    """
+    y, m, d, leap, rolled = _apply_zishi(year, month, day, hour, is_leap)
+    return f"{y}年{'閏' if leap else ''}{m}月{d}日", rolled
 
 
 def qigua_by_gregorian_time(year: int, month: int, day: int, hour: int) -> Dict:
     """以西曆時間起卦（自動轉換為農曆）"""
     lunar_year, lunar_month, lunar_day, is_leap = gregorian_to_lunar(year, month, day)
-    result = qigua_by_time(lunar_year, lunar_month, lunar_day, hour)
+    result = qigua_by_time(lunar_year, lunar_month, lunar_day, hour, is_leap)
 
+    lunar_text, rolled = _lunar_display(lunar_year, lunar_month, lunar_day, hour, is_leap)
+    note = "梅花易數使用農曆計算"
+    if rolled:
+        note += "；23時屬次日子時，農曆日已推次日（日始於子時）"
     result["日期轉換"] = {
         "西曆": f"{year}年{month}月{day}日",
-        "農曆": f"{lunar_year}年{'閏' if is_leap else ''}{lunar_month}月{lunar_day}日",
-        "說明": "梅花易數使用農曆計算"
+        "農曆": lunar_text,
+        "說明": note,
     }
     return result
 
 
-def qigua_by_numbers(num1: int, num2: int, num3: int = None) -> Dict:
-    """以數字起卦"""
+def qigua_by_numbers(num1: int, num2: int, num3: Optional[int] = None) -> Dict:
+    """以數字起卦。
+
+    動爻恆取「總數除六」（原書 卷一・數字占）：兩數則 (num1+num2)、三數則
+    (num1+num2+num3)。三數時只取 num3 是常見的今人簡法，非原書之法。
+    """
     upper_gua = num_to_gua(num1)
     lower_gua = num_to_gua(num2)
-    dong_yao = num_to_yao(num3) if num3 is not None else num_to_yao(num1 + num2)
+    total = num1 + num2 + (num3 if num3 is not None else 0)
+    dong_yao = num_to_yao(total)
 
     result = _analyze_hexagram(upper_gua, lower_gua, dong_yao)
+    dong_expr = f"({num1}+{num2}) mod 6 = {dong_yao}" if num3 is None \
+        else f"({num1}+{num2}+{num3}) mod 6 = {dong_yao}"
     result["計算過程"] = {
         "第一數": f"{num1} → {num1} mod 8 = {upper_gua} → {BAGUA[upper_gua]['name']}",
         "第二數": f"{num2} → {num2} mod 8 = {lower_gua} → {BAGUA[lower_gua]['name']}",
-        "動爻": f"({num1}+{num2}) mod 6 = {dong_yao}" if num3 is None else f"{num3} mod 6 = {dong_yao}",
+        "動爻": dong_expr,
     }
     return result
 
@@ -612,7 +677,8 @@ def print_result(result: Dict):
 
     print("\n【四、互卦】")
     hu = result["互卦"]
-    print(f"  {hu['名稱']}（上{hu['上互']}下{hu['下互']}）")
+    src = "（本卦六爻皆同，依原書改從變卦取互）" if hu.get("取自變卦") else ""
+    print(f"  {hu['名稱']}（上{hu['上互']}下{hu['下互']}）{src}")
 
     print("\n【五、變卦】")
     bian = result["變卦"]

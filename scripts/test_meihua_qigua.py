@@ -4,12 +4,14 @@ Tier 6：梅花易數起卦端到端單元測試
 
 驗證項目：
   1. num_to_gua / num_to_yao 餘 0 邊界（餘 0 當 8 / 餘 0 當 6）
-  2. qigua_by_numbers：兩數起卦、三數起卦（指定動爻）
+  2. qigua_by_numbers：兩數起卦、三數起卦（動爻取總數除六）
   3. qigua_by_time：邵子《梅花易數》觀梅占經典案例
      - 辰年十二月十七日申時 → 澤火革，初爻動，互天風姤，變澤山咸
      - 體兌金，用離火，火剋金 = 用剋體（凶）
   4. qigua_by_gregorian_time：西曆→農曆→起卦端到端
   5. 體用判定方向（動爻 ≤ 3 上為體；> 3 下為體）
+  6. 乾為天／坤為地互卦取自變卦
+  7. 日始於子時：23 時推次日（含月末、年末、閏月轉入）
 
 整條梅花起卦線（時間/數字/西曆）與已驗證的農曆+八卦+動爻數整合驗證。
 """
@@ -23,6 +25,12 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from meihua_calc import (  # noqa: E402
+    DIZHI,
+    YEAR_INFOS,
+    _analyze_hexagram,
+    _month_days,
+    get_year_dizhi,
+    lunar_next_day,
     num_to_gua,
     num_to_yao,
     qigua_by_gregorian_time,
@@ -76,11 +84,24 @@ class TestQiguaByNumbers(unittest.TestCase):
         self.assertTrue(result["本卦"]["下卦"].startswith("坤"))
         self.assertEqual(result["本卦"]["動爻"], "第2爻")
 
-    def test_three_numbers_explicit_dong(self):
-        """6, 8, 3 → 上坎下坤，動爻 = 3"""
+    def test_three_numbers_total_over_six(self):
+        """6, 8, 3 → 上坎下坤，動爻取總數除六 = (6+8+3)%6 = 5
+
+        原書三數起卦的動爻是總數除六，不是只取第三數（那是今人簡法）。
+        """
         result = qigua_by_numbers(6, 8, 3)
         self.assertEqual(result["本卦"]["名稱"], "水地比")
-        self.assertEqual(result["本卦"]["動爻"], "第3爻")
+        self.assertEqual(result["本卦"]["動爻"], "第5爻")
+        self.assertIn("(6+8+3)", result["計算過程"]["動爻"])
+
+    def test_three_numbers_not_third_alone(self):
+        """回歸測試：動爻不得退回「只取第三數除六」的簡法。
+
+        選 num3 使兩種算法給出不同結果：只取第三數 → 4%6=4；
+        總數除六 → (1+1+4)%6=6。
+        """
+        result = qigua_by_numbers(1, 1, 4)
+        self.assertEqual(result["本卦"]["動爻"], "第6爻")
 
     def test_pure_qian(self):
         """1, 1 → 上乾下乾 = 乾為天"""
@@ -161,7 +182,7 @@ class TestTiYongDirection(unittest.TestCase):
         """動爻 1, 2, 3 → 動在下卦 → 上卦為體"""
         for dong in [1, 2, 3]:
             with self.subTest(dong=dong):
-                result = qigua_by_numbers(1, 8, dong)  # 上乾 下坤
+                result = _analyze_hexagram(1, 8, dong)  # 上乾 下坤
                 self.assertTrue(result["體用"]["體卦"].startswith("乾"),
                                 f"動爻 {dong} 在下，上卦乾應為體，實得 {result['體用']['體卦']}")
 
@@ -169,9 +190,106 @@ class TestTiYongDirection(unittest.TestCase):
         """動爻 4, 5, 6 → 動在上卦 → 下卦為體"""
         for dong in [4, 5, 6]:
             with self.subTest(dong=dong):
-                result = qigua_by_numbers(1, 8, dong)  # 上乾 下坤
+                result = _analyze_hexagram(1, 8, dong)  # 上乾 下坤
                 self.assertTrue(result["體用"]["體卦"].startswith("坤"),
                                 f"動爻 {dong} 在上，下卦坤應為體，實得 {result['體用']['體卦']}")
+
+
+# ============================================================================
+# 4b. 乾為天 / 坤為地 互卦取自變卦
+# ============================================================================
+class TestPureGuaHuFromBian(unittest.TestCase):
+    """六爻皆同者，互卦每一段都得本卦自身，等於沒有取象；
+    原書規定乾為天、坤為地改從變卦取互。"""
+
+    def test_qian_hu_from_bian(self):
+        """乾為天動初爻 → 變天風姤(111110)，互取自變卦 = 乾為天(111111)"""
+        result = _analyze_hexagram(1, 1, 1)
+        self.assertEqual(result["本卦"]["名稱"], "乾為天")
+        self.assertTrue(result["互卦"]["取自變卦"])
+        self.assertEqual(result["變卦"]["名稱"], "天風姤")
+        self.assertEqual(result["互卦"]["名稱"], "乾為天")
+
+    def test_kun_hu_from_bian(self):
+        """坤為地動三爻 → 變地山謙(000100)，互取自變卦 = 雷水解"""
+        result = _analyze_hexagram(8, 8, 3)
+        self.assertEqual(result["本卦"]["名稱"], "坤為地")
+        self.assertTrue(result["互卦"]["取自變卦"])
+        self.assertEqual(result["互卦"]["名稱"], "雷水解")
+
+    def test_ordinary_gua_hu_from_ben(self):
+        """一般卦互卦仍取自本卦，不得誤觸此規則"""
+        result = _analyze_hexagram(6, 8, 2)  # 水地比
+        self.assertFalse(result["互卦"]["取自變卦"])
+        self.assertEqual(result["互卦"]["名稱"], "山地剝")
+
+
+# ============================================================================
+# 4c. 日始於子時：23 時推次日
+# ============================================================================
+class TestZishiDayRoll(unittest.TestCase):
+    """原書「日始於子時」：23:00–23:59 已入次日子時，日數取次日。"""
+
+    def test_23_hour_rolls_to_next_day(self):
+        """農曆 2024/6/15 23時 應與 2024/6/16 23時之前的日數一致"""
+        rolled = qigua_by_time(2024, 6, 15, 23)
+        self.assertEqual(rolled["計算過程"]["日數"], 16)
+        self.assertIn("子時推日", rolled["計算過程"])
+
+    def test_22_hour_does_not_roll(self):
+        """22 時屬亥時，仍為當日"""
+        result = qigua_by_time(2024, 6, 15, 22)
+        self.assertEqual(result["計算過程"]["日數"], 15)
+        self.assertNotIn("子時推日", result["計算過程"])
+
+    def test_month_end_rolls_into_next_month(self):
+        """月末 23 時應進入次月初一，而非產生第 30/31 日"""
+        info = YEAR_INFOS[2024 - 1900]
+        last = _month_days(info, 6, False)
+        result = qigua_by_time(2024, 6, last, 23)
+        self.assertEqual(result["計算過程"]["日數"], 1)
+        self.assertEqual(result["計算過程"]["月數"], 7)
+
+    def test_year_end_rolls_into_next_year(self):
+        """臘月月末 23 時應進入次年正月初一，年地支同步進位"""
+        info = YEAR_INFOS[2024 - 1900]
+        last = _month_days(info, 12, False)
+        result = qigua_by_time(2024, 12, last, 23)
+        self.assertEqual(result["計算過程"]["月數"], 1)
+        self.assertEqual(result["計算過程"]["日數"], 1)
+        self.assertIn(DIZHI[get_year_dizhi(2025)[0]], result["計算過程"]["年數"])
+
+    def test_gregorian_entry_rolls_once_only(self):
+        """西曆入口只透過 qigua_by_time 推日一次，不得重複推日"""
+        gz = qigua_by_gregorian_time(2024, 7, 20, 23)   # 農曆 2024/6/15
+        ln = qigua_by_time(2024, 6, 15, 23)
+        self.assertEqual(gz["本卦"]["序號"], ln["本卦"]["序號"])
+        self.assertEqual(gz["本卦"]["動爻"], ln["本卦"]["動爻"])
+        # 日期轉換顯示的是實際起卦所用的農曆日（已推日）
+        self.assertIn("6月16日", gz["日期轉換"]["農曆"])
+        self.assertIn("日始於子時", gz["日期轉換"]["說明"])
+
+
+# ============================================================================
+# 4d. 農曆日加一天（含閏月轉入）
+# ============================================================================
+class TestLunarNextDay(unittest.TestCase):
+
+    def test_mid_month(self):
+        self.assertEqual(lunar_next_day(2024, 6, 15), (2024, 6, 16, False))
+
+    def test_into_leap_month(self):
+        """2023 閏二月：二月月末的次日應為閏二月初一"""
+        info = YEAR_INFOS[2023 - 1900]
+        self.assertEqual(info & 0xF, 2, "2023 應為閏二月")
+        last = _month_days(info, 2, False)
+        self.assertEqual(lunar_next_day(2023, 2, last), (2023, 2, 1, True))
+
+    def test_out_of_leap_month(self):
+        """閏二月月末的次日應為三月初一"""
+        info = YEAR_INFOS[2023 - 1900]
+        last = _month_days(info, 2, True)
+        self.assertEqual(lunar_next_day(2023, 2, last, True), (2023, 3, 1, False))
 
 
 # ============================================================================
