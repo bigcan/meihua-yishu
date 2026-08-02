@@ -19,6 +19,7 @@ Tier 6：梅花易數起卦端到端單元測試
 from __future__ import annotations
 
 import os
+import re
 import sys
 import unittest
 
@@ -26,9 +27,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from meihua_calc import (  # noqa: E402
     DIZHI,
+    SEASON_ELEMENT,
     YEAR_INFOS,
     _analyze_hexagram,
     _month_days,
+    _MONTH_SEASON,
+    analyze_wangshuai,
+    analyze_wuxing,
+    get_season,
     get_year_dizhi,
     lunar_next_day,
     num_to_gua,
@@ -193,6 +199,143 @@ class TestTiYongDirection(unittest.TestCase):
                 result = _analyze_hexagram(1, 8, dong)  # 上乾 下坤
                 self.assertTrue(result["體用"]["體卦"].startswith("坤"),
                                 f"動爻 {dong} 在上，下卦坤應為體，實得 {result['體用']['體卦']}")
+
+
+# ============================================================================
+# 4a. 體用五行生剋（梅花易數最核心的判斷規則）
+# ============================================================================
+class TestAnalyzeWuxing(unittest.TestCase):
+    """先前只有觀梅占間接斷言過「用克體」一種，其餘四種關係無任何測試。
+    體用生剋是整個梅花系統用得最多的規則，五種關係逐一釘死。"""
+
+    # (體五行, 用五行) → 應得關係
+    CASES = [
+        ("木", "木", "比和（吉）"),
+        ("金", "金", "比和（吉）"),
+        ("木", "水", "用生體（大吉）"),   # 水生木
+        ("火", "木", "用生體（大吉）"),   # 木生火
+        ("木", "火", "體生用（耗洩）"),   # 木生火，體洩氣
+        ("水", "木", "體生用（耗洩）"),
+        ("木", "土", "體克用（吉）"),     # 木剋土
+        ("金", "木", "體克用（吉）"),
+        ("木", "金", "用克體（凶）"),     # 金剋木
+        ("土", "木", "用克體（凶）"),
+    ]
+
+    def test_all_five_relations(self):
+        for ti, yong, expected in self.CASES:
+            with self.subTest(體=ti, 用=yong):
+                self.assertEqual(analyze_wuxing(ti, yong), expected)
+
+    def test_every_element_pair_is_classified(self):
+        """25 種組合都必須落入五種關係之一，不得出現「未知關係」"""
+        elements = ["木", "火", "土", "金", "水"]
+        relations = set()
+        for ti in elements:
+            for yong in elements:
+                got = analyze_wuxing(ti, yong)
+                self.assertNotEqual(got, "未知關係", f"體{ti}用{yong} 未被分類")
+                relations.add(got)
+        self.assertEqual(len(relations), 5, f"應恰好五種關係，實得 {relations}")
+
+    def test_sheng_ke_directions_are_not_mirrored(self):
+        """生剋有方向：體生用與用生體不可互換，體克用與用克體不可互換。
+        防止 analyze_wuxing 的比較方向被鏡像翻轉。"""
+        self.assertNotEqual(analyze_wuxing("木", "火"), analyze_wuxing("火", "木"))
+        self.assertNotEqual(analyze_wuxing("木", "土"), analyze_wuxing("土", "木"))
+
+
+# ============================================================================
+# 4a-2. 卦氣旺衰（推導 ↔ 兩份 markdown 表同步）
+# ============================================================================
+class TestWangShuai(unittest.TestCase):
+    """旺衰改為推導（當令旺／令生相／生令休／剋令囚／令剋死），不再存表。
+    yingqi-calc.md §3.1 與 ying-guides.md 第四應各有一份人類可讀的表，
+    本測試逐格比對推導結果與那兩份表——三者任一被單方面修改就失敗。"""
+
+    REF_DIR = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "references")
+    GUA_ELEMENT = {"震巽": "木", "離": "火", "坤艮": "土", "乾兌": "金", "坎": "水"}
+
+    def test_derivation_matches_yingqi_calc_table(self):
+        """yingqi-calc.md §3.1 完整五態表：季節|旺五行|旺卦|相卦|休卦|囚卦|死卦"""
+        path = os.path.join(self.REF_DIR, "yingqi-calc.md")
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+
+        rows = re.findall(
+            r"^(春|夏|秋|冬|四季末)\|(木|火|土|金|水)\|(\S+)\|(\S+)\|(\S+)\|(\S+)\|(\S+)\s*$",
+            text, re.M)
+        self.assertEqual(len(rows), 5, f"§3.1 應有 5 季，實得 {len(rows)}")
+
+        cells = 0
+        for season, ruling, *states in rows:
+            self.assertEqual(
+                SEASON_ELEMENT[season], ruling,
+                f"{season} 當旺五行：程式 {SEASON_ELEMENT[season]} vs 表 {ruling}")
+            for expected_state, gua in zip(["旺", "相", "休", "囚", "死"], states):
+                element = self.GUA_ELEMENT[gua]
+                got = analyze_wangshuai(element, season)
+                self.assertEqual(
+                    got, expected_state,
+                    f"{season}·{gua}({element})：推導得「{got}」，"
+                    f"但 yingqi-calc.md §3.1 標為「{expected_state}」")
+                cells += 1
+        self.assertEqual(cells, 25, "5 季 × 5 態應為 25 格")
+
+    def test_derivation_matches_ying_guides_table(self):
+        """ying-guides.md 第四應只列兩極：季節 旺相之卦 休囚之卦（實為死）"""
+        path = os.path.join(self.REF_DIR, "ying-guides.md")
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+
+        rows = re.findall(
+            r"^(春|夏|秋|冬|四季末) (\S+)（(?:木|火|土|金|水)旺） (\S+)（(?:木|火|土|金|水)死）\s*$",
+            text, re.M)
+        self.assertEqual(len(rows), 5, f"第四應時令表應有 5 季，實得 {len(rows)}")
+        for season, wang_gua, si_gua in rows:
+            self.assertEqual(analyze_wangshuai(self.GUA_ELEMENT[wang_gua], season), "旺",
+                             f"{season}·{wang_gua} 應為旺")
+            self.assertEqual(analyze_wangshuai(self.GUA_ELEMENT[si_gua], season), "死",
+                             f"{season}·{si_gua} 應為死")
+
+    def test_each_season_assigns_all_five_states_once(self):
+        for season in SEASON_ELEMENT:
+            with self.subTest(season=season):
+                states = [analyze_wangshuai(e, season)
+                          for e in ["木", "火", "土", "金", "水"]]
+                self.assertEqual(sorted(states), sorted(["旺", "相", "休", "囚", "死"]),
+                                 f"{season} 五行狀態分配錯誤：{states}")
+
+    def test_sijimo_is_last_18_days(self):
+        """四季末＝農曆三、六、九、十二月的最後18天；缺了它土永不當令"""
+        info = YEAR_INFOS[2024 - 1900]
+        for month in (3, 6, 9, 12):
+            length = _month_days(info, month, False)
+            with self.subTest(month=month):
+                self.assertEqual(get_season(2024, month, length - 18), _MONTH_SEASON[month])
+                self.assertEqual(get_season(2024, month, length - 17), "四季末")
+                self.assertEqual(get_season(2024, month, length), "四季末")
+
+    def test_non_earth_months_never_sijimo(self):
+        for month in (1, 2, 4, 5, 7, 8, 10, 11):
+            for day in (1, 15, 29):
+                self.assertEqual(get_season(2024, month, day), _MONTH_SEASON[month])
+
+    def test_time_cast_emits_wangshuai_number_cast_does_not(self):
+        """數字起卦無日期→無時令，該節必須從缺（猜today是捏造）"""
+        timed = qigua_by_time(2024, 1, 15, 10)
+        self.assertIn("卦氣旺衰", timed)
+        self.assertIn("春", timed["卦氣旺衰"]["時令"])
+        self.assertNotIn("卦氣旺衰", qigua_by_numbers(6, 8))
+
+    def test_ti_de_ling_flag_matches_state(self):
+        for y, m, d in [(2024, 1, 15), (2024, 5, 10), (2024, 8, 3), (2024, 11, 20)]:
+            result = qigua_by_time(y, m, d, 10)
+            ws = result["卦氣旺衰"]
+            with self.subTest(date=(y, m, d)):
+                self.assertEqual(ws["體卦得令"],
+                                 ws["體卦旺衰"].endswith(("旺", "相")))
 
 
 # ============================================================================
@@ -364,9 +507,19 @@ class TestStrategyChangePaths(unittest.TestCase):
         58: "兌", 59: "渙", 60: "節", 61: "中孚", 62: "小過", 63: "既濟", 64: "未濟",
     }
 
-    def test_change_paths_use_bottom_up_yao(self):
-        import re
+    # 路徑步驟：「→ 目標（變N爻[得R%]）」。多段路徑（大過 → 夬 → 革）逐段都有
+    # 自己的變爻，故單段與多段共用同一組解析規則，不再有無法驗證的漏網條目。
+    STEP_RE = r"→\s*([^（(→]+?)\s*（變(\d)爻(?:得(\d+)%)?）"
 
+    @classmethod
+    def parse_path(cls, path: str):
+        """回傳 [(目標卦名, 變爻, 吉率或 None), ...]；無法解析則回傳 []"""
+        import re
+        return [(m.group(1).strip(), int(m.group(2)),
+                 int(m.group(3)) if m.group(3) else None)
+                for m in re.finditer(cls.STEP_RE, path)]
+
+    def test_change_paths_use_bottom_up_yao(self):
         from meihua_calc import (
             HEXAGRAM_STRATEGY,
             HEXAGRAMS,
@@ -383,23 +536,22 @@ class TestStrategyChangePaths(unittest.TestCase):
         for num, (_, _, _, path) in HEXAGRAM_STRATEGY.items():
             if not path:
                 continue
-            m = re.search(r"變(\d)爻", path)
-            if not m:
-                continue  # 例：大過 → 夬 → 革（無單一變爻）
-            yao = int(m.group(1))
-            tgt_token = re.split(r"→", path)[-1]
-            tgt_name = re.match(r"\s*([^（(]+)", tgt_token).group(1).strip()
-            self.assertIn(tgt_name, name_to_num,
-                          f"卦{num}：無法解析目標卦名 {tgt_name!r} ← {path!r}")
-            changed = apply_change(num_to_bin[num], yao)
-            got = HEXAGRAMS[binary_to_gua_pair(changed)][0]
-            self.assertEqual(
-                got, name_to_num[tgt_name],
-                f"卦{num} {self.SHORT[num]}：變{yao}爻得 {self.SHORT.get(got)}({got})，"
-                f"但路徑宣稱變為 {tgt_name}({name_to_num[tgt_name]})：{path!r}")
+            steps = self.parse_path(path)
+            self.assertTrue(steps, f"卦{num} 的變卦路徑無法解析，等同無人驗證：{path!r}")
+            # 逐段套用變爻，每一段的結果都必須等於該段宣稱的卦
+            binary = num_to_bin[num]
+            for tgt_name, yao, _pct in steps:
+                self.assertIn(tgt_name, name_to_num,
+                              f"卦{num}：無法解析目標卦名 {tgt_name!r} ← {path!r}")
+                binary = apply_change(binary, yao)
+                got = HEXAGRAMS[binary_to_gua_pair(binary)][0]
+                self.assertEqual(
+                    got, name_to_num[tgt_name],
+                    f"卦{num} {self.SHORT[num]}：變{yao}爻得 {self.SHORT.get(got)}({got})，"
+                    f"但路徑宣稱變為 {tgt_name}({name_to_num[tgt_name]})：{path!r}")
             checked += 1
-        self.assertGreaterEqual(checked, 38,
-                                f"可解析的變卦路徑應 ≥38 條，實得 {checked}")
+        self.assertEqual(checked, 40,
+                         f"變卦路徑應 40 條且全數可驗證，實得 {checked}")
 
 
 # ============================================================================
@@ -451,17 +603,22 @@ class TestStrategyMarkdownSync(unittest.TestCase):
         for num, (_typ, _adv, _jr, path) in HEXAGRAM_STRATEGY.items():
             if not path:
                 continue
-            m = re.search(r"變(\d)爻得(\d+)%", path)
-            if not m:
-                continue  # 多段路徑（大過 → 夬 → 革），markdown 亦無單一變爻
-            tgt = re.match(r"\s*([^（(]+)", re.split(r"→", path)[-1]).group(1).strip()
-            code[num] = (tgt, int(m.group(1)), int(m.group(2)))
+            steps = TestStrategyChangePaths.parse_path(path)
+            self.assertTrue(steps, f"卦{num} 路徑無法解析：{path!r}")
+            code[num] = tuple(steps)
 
+        # markdown 側用半形括號、且中繼段不帶 %：2坤→謙(變3爻83%) /
+        # 28大過→夬(變1爻)→革(變2爻50%)
         md = {}
-        for m in re.finditer(
-                r"(\d+)([^\d,，()（）→\s]+)→([^\d,，()（）→\s]+)\(變(\d)爻(\d+)%\)",
+        for entry in re.finditer(
+                r"(\d+)([^\d,，()（）→\s]+)((?:→[^\d,，()（）→\s]+\(變\d爻(?:\d+%)?\))+)",
                 self._read_md()):
-            md[int(m.group(1))] = (m.group(3), int(m.group(4)), int(m.group(5)))
+            steps = [(m.group(1), int(m.group(2)),
+                      int(m.group(3)) if m.group(3) else None)
+                     for m in re.finditer(
+                         r"→([^\d,，()（）→\s]+)\(變(\d)爻(?:(\d+)%)?\)",
+                         entry.group(3))]
+            md[int(entry.group(1))] = tuple(steps)
 
         self.assertEqual(
             set(code), set(md),
@@ -471,10 +628,13 @@ class TestStrategyMarkdownSync(unittest.TestCase):
             self.assertEqual(
                 code[num], md[num],
                 f"卦{num} {short[num]} 路徑不同步：code={code[num]} md={md[num]}")
-            tgt_num = name_to_num[code[num][0]]
+            # 路徑末段的「得R%」必須等於目標卦自身的吉率
+            tgt_name, _yao, pct = code[num][-1]
+            self.assertIsNotNone(pct, f"卦{num} 路徑末段應標示吉率：{code[num]}")
+            tgt_num = name_to_num[tgt_name]
             self.assertEqual(
-                code[num][2], HEXAGRAM_STRATEGY[tgt_num][2],
-                f"卦{num} 路徑得{code[num][2]}% 但目標 {code[num][0]} "
+                pct, HEXAGRAM_STRATEGY[tgt_num][2],
+                f"卦{num} 路徑得{pct}% 但目標 {tgt_name} "
                 f"吉率={HEXAGRAM_STRATEGY[tgt_num][2]}%")
 
 

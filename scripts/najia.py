@@ -26,12 +26,12 @@ import sys
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-try:
-    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
-except Exception:
-    pass
-
-from meihua_calc import HEXAGRAMS, apply_change, binary_to_gua_pair
+from meihua_calc import (
+    HEXAGRAMS,
+    apply_change,
+    binary_to_gua_pair,
+    configure_stdout,
+)
 
 # ============================================================================
 # 核心對照表
@@ -713,4 +713,5 @@ def main(argv: List[str]) -> None:
 
 
 if __name__ == "__main__":
+    configure_stdout()
     main(sys.argv)

@@ -20,17 +20,12 @@ import sys
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
-# Windows 終端機（cp950/cp936）若無法輸出 emoji，自動切換 stdout 為 utf-8
-try:
-    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
-except Exception:
-    pass
-
-# 與 meihua_calc.py 共用的 BAGUA / HEXAGRAMS
+# 與 meihua_calc.py 共用的 BAGUA / HEXAGRAMS / stdout 編碼處理
 from meihua_calc import (
     BAGUA,
     HEXAGRAMS,
     binary_to_gua_pair,
+    configure_stdout,
     get_hu_gua,
 )
 
@@ -455,4 +450,5 @@ def main(argv: List[str]) -> None:
 
 
 if __name__ == "__main__":
+    configure_stdout()
     main(sys.argv)

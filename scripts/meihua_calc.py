@@ -6,8 +6,29 @@ Meihua Yishu (Plum Blossom Numerology) Calculator
 內建農曆轉換功能，無需外部依賴。
 """
 
+import sys
 from datetime import datetime, date
 from typing import Tuple, Dict, Optional
+
+
+def configure_stdout() -> None:
+    """CLI 輸出含中文與符號（📿⚠️）。Windows 主控台預設 cp950/cp437，遇到無法
+    編碼的字元會直接拋 UnicodeEncodeError，整份起卦結果就此中斷——寧可個別字元
+    顯示為 ?，也不要讓使用者拿不到卦。
+
+    三個 CLI 入口（meihua_calc / jinqian_gua / najia）都在 __main__ 開頭呼叫。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:  # 被重導向到非 TextIOWrapper 時沒有這個方法
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError, AttributeError):
+            try:
+                reconfigure(errors="replace")
+            except (ValueError, OSError, AttributeError):
+                pass
 
 # 農曆數據表 (1900-2099)
 # 編碼格式：
@@ -275,10 +296,58 @@ def get_hu_gua(binary: str) -> Tuple[int, int]:
     return BINARY_TO_GUA[binary[1:4]], BINARY_TO_GUA[binary[2:5]]
 
 
+# 五行相生相剋（模組層級，供生剋與旺衰共用同一份真相）
+WUXING_SHENG = {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"}
+WUXING_KE = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
+
+# 時令當旺之五行（references/yingqi-calc.md §3.1）
+SEASON_ELEMENT = {"春": "木", "夏": "火", "秋": "金", "冬": "水", "四季末": "土"}
+
+_MONTH_SEASON = {1: "春", 2: "春", 3: "春", 4: "夏", 5: "夏", 6: "夏",
+                 7: "秋", 8: "秋", 9: "秋", 10: "冬", 11: "冬", 12: "冬"}
+
+
+def get_season(year: int, month: int, day: int, is_leap: bool = False) -> str:
+    """由農曆月日定時令。
+
+    四季末（土旺）＝農曆三、六、九、十二月的最後18天；其餘依月份分四季。
+    少了四季末，土永遠不當令，坤艮就會被讀成恆弱。
+    """
+    if month in (3, 6, 9, 12):
+        index = year - 1900
+        length = (_month_days(YEAR_INFOS[index], month, is_leap)
+                  if 0 <= index < len(YEAR_INFOS) else 30)
+        if day > length - 18:
+            return "四季末"
+    return _MONTH_SEASON[month]
+
+
+def analyze_wangshuai(element: str, season: str) -> str:
+    """某五行在該時令的旺相休囚死。
+
+    純推導不查表：當令者旺、令生者相、生令者休、剋令者囚、令剋者死。
+    references/yingqi-calc.md §3.1 與 ying-guides.md 第四應各存了一份同樣的表，
+    此處改為推導，兩份 markdown 降為說明文件——test_meihua_qigua 會逐格比對，
+    三者不同步即測試失敗。
+    """
+    se = SEASON_ELEMENT[season]
+    if element == se:
+        return "旺"
+    if WUXING_SHENG[se] == element:
+        return "相"
+    if WUXING_SHENG[element] == se:
+        return "休"
+    if WUXING_KE[element] == se:
+        return "囚"
+    if WUXING_KE[se] == element:
+        return "死"
+    return "未知"
+
+
 def analyze_wuxing(ti_element: str, yong_element: str) -> str:
     """分析體用五行生克關係"""
-    sheng = {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"}
-    ke = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
+    sheng = WUXING_SHENG
+    ke = WUXING_KE
 
     if ti_element == yong_element:
         return "比和（吉）"
@@ -293,8 +362,13 @@ def analyze_wuxing(ti_element: str, yong_element: str) -> str:
     return "未知關係"
 
 
-def _analyze_hexagram(upper_gua: int, lower_gua: int, dong_yao: int) -> Dict:
-    """分析卦象（本卦、體用、互卦、變卦）"""
+def _analyze_hexagram(upper_gua: int, lower_gua: int, dong_yao: int,
+                      season: Optional[str] = None) -> Dict:
+    """分析卦象（本卦、體用、互卦、變卦）。
+
+    season 為時令（見 get_season）；有時令才輸出【卦氣旺衰】。數字起卦無日期，
+    也就無時令可據，該節從缺——不拿今天的日期去猜，那是捏造。
+    """
     hexagram_binary = get_hexagram_binary(upper_gua, lower_gua)
     hexagram_info = HEXAGRAMS.get((upper_gua, lower_gua), (0, "未知卦"))
 
@@ -321,7 +395,7 @@ def _analyze_hexagram(upper_gua: int, lower_gua: int, dong_yao: int) -> Dict:
     ti_element = BAGUA[ti_gua]["element"]
     yong_element = BAGUA[yong_gua]["element"]
 
-    return {
+    out = {
         "本卦": {
             "序號": hexagram_info[0],
             "名稱": hexagram_info[1],
@@ -347,6 +421,18 @@ def _analyze_hexagram(upper_gua: int, lower_gua: int, dong_yao: int) -> Dict:
             "二進位": bian_binary,
         },
     }
+    if season:
+        ti_state = analyze_wangshuai(ti_element, season)
+        out["卦氣旺衰"] = {
+            "時令": f"{season}（{SEASON_ELEMENT[season]}旺）",
+            "體卦旺衰": f"{BAGUA[ti_gua]['name']}{ti_element}・{ti_state}",
+            "用卦旺衰": f"{BAGUA[yong_gua]['name']}{yong_element}・"
+                     f"{analyze_wangshuai(yong_element, season)}",
+            "體卦得令": ti_state in ("旺", "相"),
+            "讀法": "體卦旺相則事易成、可為；休囚死則力弱、宜緩。"
+                  "旺相加吉、休囚減力——為程度修正，非獨立吉凶。",
+        }
+    return out
 
 
 def _apply_zishi(year: int, month: int, day: int, hour: int,
@@ -377,7 +463,8 @@ def qigua_by_time(year: int, month: int, day: int, hour: int,
     lower_gua = num_to_gua(lower_sum)
     dong_yao = num_to_yao(lower_sum)
 
-    result = _analyze_hexagram(upper_gua, lower_gua, dong_yao)
+    season = get_season(year, month, day, is_leap)
+    result = _analyze_hexagram(upper_gua, lower_gua, dong_yao, season)
     result["計算過程"] = {
         "年數": f"{year_dizhi}年 ({year_num})",
         "月數": month,
@@ -443,8 +530,18 @@ def qigua_by_numbers(num1: int, num2: int, num3: Optional[int] = None) -> Dict:
 
 
 # ==============================================================================
-# 統計輔助功能 (Statistical Helpers)
-# 根據 384 爻數據分析添加，不影響起卦邏輯
+# 文本指標輔助功能 (Text-Metric Helpers)
+#
+# 出處：姊妹專案 muyen/decoding-iching 對 384 條爻辭的語言分析（吉語/凶語密度、
+# 文本嵌入相似度）。以下百分比是「爻辭吉語比例」——衡量該卦爻辭講得多正面，
+# 不是現實世界的成功機率，切勿以「吉率」之名輸出給用戶。
+#
+# 保留範圍的說明：該專案已撤回卦層級分類的統計顯著性主張（每卦僅 n=6 爻，
+# 隨機置換標籤得同等極端的「吸引子/排斥子」，p=0.35/0.52）。本專案仍保留這一層
+# 作為「爻辭語氣排序」的參考，並在 SKILL.md 與 hexagram-strategy.md 標明性質；
+# 留/走/守/變/慎/觀 與變卦路徑本身屬義理判斷，不依賴該統計主張。
+#
+# 不影響起卦邏輯。
 # ==============================================================================
 
 # 爻位係數（Position Coefficients）
@@ -501,7 +598,7 @@ HEXAGRAM_STRATEGY = {
     25: ("一般", "觀", 33, "无妄 → 否（變1爻得50%）"),
     26: ("福地", "守", 50, None),
     27: ("福地", "守", 50, None),
-    28: ("一般", "觀", 33, "大過 → 夬 → 革"),
+    28: ("一般", "觀", 33, "大過 → 夬（變1爻）→ 革（變2爻得50%）"),
     29: ("排斥子", "走", 0, "坎 → 比（變2爻得67%）"),
     30: ("一般", "觀", 33, "離 → 豐（變6爻得50%）"),
     31: ("困境", "變", 17, "咸 → 遯（變6爻得67%）"),
@@ -601,7 +698,7 @@ def get_hexagram_strategy(hex_num: int) -> dict:
         dict: {
             'type': 類型（吸引子/排斥子/福地/困境/陷阱/一般）,
             'advice': 建議（留/走/守/變/慎/觀）,
-            'ji_rate': 吉率百分比,
+            'ji_rate': 爻辭吉語比例（文本指標，非成功機率；欄名保留向後相容）,
             'change_path': 推薦變卦路徑（若有）
         }
     """
@@ -636,7 +733,7 @@ def print_strategy_advice(hex_num: int):
     print("\n【策略建議】")
     print(f"  類型：{strategy['type']}")
     print(f"  建議：{strategy['advice']}")
-    print(f"  吉率：{strategy['ji_rate']}%")
+    print(f"  爻辭吉語比例：{strategy['ji_rate']}%（文本指標，非成功機率）")
     if strategy['change_path']:
         print(f"  變卦路徑：{strategy['change_path']}")
 
@@ -675,6 +772,13 @@ def print_result(result: Dict):
     print(f"  用卦：{ty['用卦']}")
     print(f"  生克：{ty['生克關係']}")
 
+    if "卦氣旺衰" in result:
+        ws = result["卦氣旺衰"]
+        print("\n【三之二、卦氣旺衰】")
+        print(f"  時令：{ws['時令']}")
+        print(f"  體：{ws['體卦旺衰']}　用：{ws['用卦旺衰']}")
+        print(f"  {'體卦得令' if ws['體卦得令'] else '體卦失令'}——{ws['讀法']}")
+
     print("\n【四、互卦】")
     hu = result["互卦"]
     src = "（本卦六爻皆同，依原書改從變卦取互）" if hu.get("取自變卦") else ""
@@ -703,7 +807,7 @@ def print_result(result: Dict):
 
 
 if __name__ == "__main__":
-    import sys
+    configure_stdout()
 
     if len(sys.argv) > 1:
         if sys.argv[1] == "time":

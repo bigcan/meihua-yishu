@@ -17,7 +17,7 @@ When a request changes divination behavior, decide whether it belongs in `SKILL.
 All from repo root. There are no build/lint steps and no third-party deps for the core scripts.
 
 ```bash
-# Full test suite (134 tests across 6 risk tiers; runs in <20 ms)
+# Full test suite (172 tests across 7 risk tiers; ~8 s — Tier 7 spawns subprocesses)
 python -m unittest discover -s scripts -p "test_*.py"
 
 # Run a single tier
@@ -50,7 +50,9 @@ The `experiments/prediction-validation/` subproject has its own `requirements.tx
 1. **Branch on method first** — Meihua family (time/number/image/sound) vs. Coin-toss + Najia (六爻). If the user brought a specific question without choosing a method, the skill *requires* asking which to use before casting. Don't default to time-casting silently.
 2. **Cast** — either via the LLM's own arithmetic (Meihua image-casting needs only `bagua-wanwu.md`) or by calling a script. Meihua time-casting **must** use the lunar calendar; `meihua_calc.py` has a built-in 1900–2099 lunar table so no external library is required.
 3. **Interpret in a prescribed order** — line text (yaoci) first, then ti-yong, mutual hexagram, transformed hexagram, hexagram relationships, timing. Each step has a dedicated `references/*.md`.
-4. **Output the strategy block** — this is mandatory and the format is fixed in `SKILL.md` (本卦 / 吉率 / 類型 / 策略 / 下一步 / 變卦路徑). The 6 strategy types (吸引子/排斥子/福地/困境/陷阱/一般 → 留/走/守/變/慎/觀) live in `HEXAGRAM_STRATEGY` in [meihua_calc.py:410](scripts/meihua_calc.py:410) and in `references/hexagram-strategy.md` — keep them in sync.
+4. **Output the strategy block** — this is mandatory and the format is fixed in `SKILL.md` (本卦 / 爻辭吉語比例 / 類型 / 策略 / 下一步 / 變卦路徑). The 6 strategy types (吸引子/排斥子/福地/困境/陷阱/一般 → 留/走/守/變/慎/觀) live in `HEXAGRAM_STRATEGY` in [meihua_calc.py:573](scripts/meihua_calc.py:573) and in `references/hexagram-strategy.md` — keep them in sync (Tier 6 `TestStrategyMarkdownSync` enforces both directions).
+
+**The percentages are a text metric, not a probability.** They are 爻辭吉語比例 — auspicious-word density across the 384 line texts, from the sibling project `muyen/decoding-iching`, whose author has since retracted the hexagram-level classification (n=6 lines per hexagram; shuffled labels give equally extreme "attractors", p=0.35/0.52). This fork keeps the layer for ranking the *tone* of change-paths and labels it honestly everywhere it surfaces. Never render it as 吉率 or as a success probability in user-facing output. Whether to follow upstream and delete the layer outright is an open decision — don't resolve it unilaterally.
 
 If you change the interpretation flow or the strategy output format, update **both** `SKILL.md` and the relevant `references/*.md` — the skill instructs Claude to read those files mid-conversation, so a contradiction will produce inconsistent readings.
 
@@ -61,6 +63,9 @@ If you change the interpretation flow or the strategy output format, update **bo
 - **Binary convention** for a 6-bit hexagram string: left 3 chars = upper trigram, right 3 chars = lower trigram. Position 1 (初爻) is the **rightmost** bit; `apply_change(binary, yao_position)` toggles `binary[6 - yao_position]`. The `test_coordinate_system.py` tier exists specifically to catch flips of this convention — re-run it after any change touching `apply_change`, `get_hu_gua`, or `binary_to_gua_pair`.
 - **Remainder-zero rule**: `num_to_gua(n)` returns 8 when `n % 8 == 0`, `num_to_yao(n)` returns 6 when `n % 6 == 0`. Several historical cases depend on this — don't "fix" it to return 0.
 - **Najia palace structure** (`PALACE_ORDER`, `HEX_TO_PALACE`, `SHI_POS`, `YING_POS`) encodes Jing Fang's eight-palace system and is cross-checked by the Tier 2 test against historical rules. Treat the table as authoritative; if a test fails after editing it, the table is wrong (not the test).
+- **日始於子時**: `_apply_zishi` is the *only* place the lunar day advances — hour 23 takes the next lunar day. Gregorian entry points pass `is_leap` through and re-derive the display date from the same pure function, so they can't double-advance. A 23:00 cast legitimately shows a lunar day one ahead of the clock date; that is correct, don't "fix" it.
+- **旺衰 is derived, not stored**: `analyze_wangshuai` computes 旺相休囚死 from 生剋 (當令旺/令生相/生令休/剋令囚/令剋死). `yingqi-calc.md` §3.1 and `ying-guides.md` 第四應 are human-readable copies; Tier 6 asserts all 25 cells against them, so all three stay in lockstep. Don't add a fourth copy as a lookup dict.
+- **CLI output encoding**: all three CLIs call `configure_stdout()` from `__main__` (never at import — that would mutate a caller's stdout). Windows cp950/cp437 consoles cannot encode 📿/⚠️ and used to abort mid-output with `UnicodeEncodeError`. Tier 7 runs each CLI under cp950/cp437/ascii to keep this fixed.
 
 ## Knowledge-base layout (`references/`)
 
@@ -75,20 +80,27 @@ The skill's decision tree in `SKILL.md` routes to specific files; keep filenames
 
 ## Tests as documentation
 
-The test files are organized as 6 "risk tiers" and are also the most readable spec of the historical rules being enforced:
+The test files are organized as 7 "risk tiers" and are also the most readable spec of the historical rules being enforced:
 
 - Tier 1 `test_coordinate_system.py` — binary ↔ hexagram conversion, changing-line index, mutual hex
 - Tier 2 `test_palace_system.py` — Jing Fang's 8-palace attribution, world/response positions
 - Tier 3 `test_najia_liuqin.py` — najia tables, six relatives, 5 canonical cases from 增刪卜易
 - Tier 4 `test_yongshen_xunkong.py` — void days, yongshen, chong/he, fushen
 - Tier 5 `test_lunar_calendar.py` — 200-year lunar conversion, year ganzhi, shichen
-- Tier 6 `test_meihua_qigua.py` — end-to-end Meihua casting incl. Shao Yong's plum-blossom case
+- Tier 6 `test_meihua_qigua.py` — end-to-end Meihua casting incl. Shao Yong's plum-blossom case; 體用生剋 all 5 relations; 旺衰 derivation vs. both markdown tables; strategy change-paths and md↔code sync
+- Tier 7 `test_output_path.py` — what the user actually receives: CLI under cp950/cp437/ascii consoles, `print_result`/`print_strategy_advice`, the strategy accessors, and the coin-casting entry point (incl. the 1/8·3/8·3/8·1/8 three-coin distribution)
+
+Tiers 1–6 run in ~10 ms; Tier 7 takes ~7 s because it spawns subprocesses to test real console encodings.
 
 If you add a new historical rule, prefer adding a test that references its primary source (《增刪卜易》《卜筮正宗》《易學啟蒙》《梅花易數》) over inline comments.
+
+**Green is not enough — the suite is mutation-tested.** A property with no test that *fails when you break it* is unprotected. Before trusting a tier, check that reverting the rule it guards actually turns it red.
 
 ## Ethics and tone (from `ETHICS.md`)
 
 The skill is constrained to non-deterministic language ("傾向", "可能", never "一定"); must present both auspicious and inauspicious readings; will not predict death timing; redirects medical/legal/financial questions to professionals; and offers crisis resources if a querent indicates self-harm. Preserve these constraints when editing `SKILL.md`.
+
+The crisis path lives in `SKILL.md` itself (section 危機處理), not only in `ETHICS.md` — `SKILL.md` is the sole file loaded when the skill fires, so a rule that exists only in `ETHICS.md` never reaches runtime. That section carries concrete hotlines plus an explicit instruction never to invent a number. **Keep the resources in `SKILL.md`**, and if you revise them, verify against current official sources rather than editing from memory.
 
 ## License note
 
