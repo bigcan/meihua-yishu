@@ -126,12 +126,14 @@ class TestPrintPaths(unittest.TestCase):
         with redirect_stdout(buf):
             print_result(qigua_by_time(2024, 1, 15, 10))
         out = buf.getvalue()
-        for section in ["【二、本卦】", "【三、體用分析】", "【三之二、卦氣旺衰】",
-                        "【四、互卦】", "【五、變卦】", "【六、錯卦",
-                        "【七、綜卦", "【八、爻位盤"]:
+        # v4 章節：卦氣旺衰升為第四節、新增體用總訣；v4.3 新增黨／類象／應期依據
+        for section in ["【二、本卦】", "【三、體用分析】", "【四、卦氣旺衰】",
+                        "【五、互卦", "【六、變卦", "【七、體用總訣",
+                        "【七之二、", "【七之三、", "【七之四、",
+                        "【八、爻位盤", "【九、錯卦／綜卦"]:
             with self.subTest(section=section):
                 self.assertIn(section, out)
-        self.assertIn("卦德（參考", out)
+        self.assertIn("卦德：", out)
 
     def test_yao_board_marks_the_moving_line(self):
         """★ 必須標在動爻那一列，且六爻由上而下列出"""
@@ -150,9 +152,11 @@ class TestPrintPaths(unittest.TestCase):
         with redirect_stdout(buf):
             print_result(qigua_by_numbers(6, 8))
         out = buf.getvalue()
-        self.assertNotIn("卦氣旺衰", out)
+        self.assertIn("【四、卦氣旺衰】未提供占時，從缺", out)   # v4：明說從缺，不代入今天日期
+        self.assertNotIn("體卦旺衰", out)
+        self.assertNotIn("  卦數：", out)                        # 無占時則不算卦數應期（卦氣應期仍可列）
         self.assertIn("【八、爻位盤", out)
-        self.assertIn("【六、錯卦", out)
+        self.assertIn("【九、錯卦／綜卦", out)
 
     def test_print_strategy_advice_emits_next_step(self):
         """每個策略碼都必須輸出對應的【下一步】——SKILL.md 明定不可省略"""
@@ -206,22 +210,16 @@ class TestNextStepsMatchSkillMd(unittest.TestCase):
     SKILL_MD = os.path.join(SCRIPTS_DIR, "..", "SKILL.md")
 
     def test_next_steps_in_sync_with_skill_md(self):
+        """v4 起策略表降為選用附錄，SKILL.md 不再帶【下一步】對照表，也不得要求固定輸出它。
+        字典仍在程式裡（是否整層刪除為未決事項），此測試釘住兩件事：
+        六碼齊全；SKILL.md 沒有把那張表加回來。"""
         import re
         with open(self.SKILL_MD, encoding="utf-8") as fh:
             text = fh.read()
-        md = dict(re.findall(r"^([留走守變慎觀])\|(.+?)\s*$", text, re.M))
-        self.assertEqual(
-            set(md), set(STRATEGY_NEXT_STEPS),
-            f"SKILL.md 下一步表與 STRATEGY_NEXT_STEPS 策略碼不一致："
-            f"md−code={set(md) - set(STRATEGY_NEXT_STEPS)} "
-            f"code−md={set(STRATEGY_NEXT_STEPS) - set(md)}")
-        for code, md_text in md.items():
-            with self.subTest(策略=code):
-                self.assertEqual(
-                    STRATEGY_NEXT_STEPS[code], f"【下一步】{md_text}",
-                    f"策略「{code}」的下一步文字不同步：\n"
-                    f"  SKILL.md: {md_text}\n"
-                    f"  程式碼   : {STRATEGY_NEXT_STEPS[code]}")
+        self.assertEqual(set(STRATEGY_NEXT_STEPS), set("留走守變慎觀"))
+        self.assertEqual(re.findall(r"^([留走守變慎觀])\|(.+?)\s*$", text, re.M), [])
+        self.assertIn("不要輸出固定的「【下一步】」模板", text)
+
 
 
 # ============================================================================

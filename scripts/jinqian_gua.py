@@ -354,6 +354,9 @@ def print_result(
         if note:
             print(f"\n【占時】{note}")
         h = najia_annotate(ben["二進位"], changing=dong["位置"], day_ganzhi=day, month_zhi=month)
+        if najia_at:
+            import calendar_util as _cal
+            h.cast_at, h.cast_tz = _cal.parse_local(najia_at), najia_tz
         print_hexagram(h)
         if najia_ask:
             print_yongshen(h, find_yongshen(h, najia_ask, {"illness": najia_illness}))

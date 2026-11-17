@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status of this branch (v4.1) — read first
 
-`SKILL.md`, `references/` and `scripts/` on this branch are **v4.2** (v4.1 plus the rule-chain verdict in `najia.py`), imported from the installed skill (the v4 audit rewrite of 2026-10-12 was made outside this repo) plus the 2026-11-17 direct-verdict changes. See `CHANGELOG.md`. Much of the rest of this file still describes v3 and is stale where they differ:
+`SKILL.md`, `references/` and `scripts/` on this branch are **v4.3** (v4.1 direct-verdict protocol, v4.2 rule-chain verdict in `najia.py`, v4.3 timing ranking with calendar dates and the Meihua 黨／類象／應期 sections), imported from the installed skill (the v4 audit rewrite of 2026-10-12 was made outside this repo) plus the 2026-11-17 direct-verdict changes. See `CHANGELOG.md`. Much of the rest of this file still describes v3 and is stale where they differ:
 
 - Meihua `time` now defaults to Shao Yong's year/month/day/hour method; second precision is `time-precise`. Pass `--at "YYYY-MM-DD HH:MM"` (and `--tz`) — 卦氣 and 月建 follow solar terms via `scripts/calendar_util.py`.
 - The strategy block is an optional appendix, no longer mandatory output.
-- **Tests that are green**: `python tests/test_skill.py` (37) and `python tests/backtest.py --baseline`. The eight-tier suite under `scripts/test_*.py` has **not** been ported: `test_meihua_qigua` fails to import and 15 other tests fail, because v4 changed data structures and output section names. Do not read those failures as regressions, and do not delete the suite — port it.
+- **Tests — all green, keep them so**: the eight-tier suite `python -m unittest discover -s scripts -p "test_*.py"` (222, ported to v4 on 2026-11-17), `python tests/test_skill.py` (43), and `python tests/backtest.py --baseline`.
 - `python tests/backtest.py --miss` scores the engines against worked cases from 《增刪卜易》 and 《梅花易數》. Any change to judgement logic in `najia.py` / `meihua_calc.py` must not regress `tests/backtest_baseline.json`; update the baseline only when the numbers improve. Tune rules against the development group only (`split: dev` in the gold file; `--miss` lists just those); never inspect `holdout` or `fresh` misses (`--miss-all`) while tuning — report those numbers as-is, next to the always-吉 base rate. Every new rule needs a book citation and a pinning test in `TestVerdictRules`.
 - `python scripts/build_package.py` still builds all three shapes from this tree.
 
@@ -36,8 +36,9 @@ python -m unittest scripts.test_lunar_calendar
 python -m unittest scripts.test_meihua_qigua.TestMeihuaQiguaByTime.test_shao_yong_plum_blossom_case
 
 # Meihua casting CLI
-python scripts/meihua_calc.py time                     # current time, second precision (default)
-python scripts/meihua_calc.py time-shichen             # current time, traditional 2-hour 時辰
+python scripts/meihua_calc.py time --at "2026-10-12 16:25"   # Shao Yong's year/month/day/hour method (default since v4)
+python scripts/meihua_calc.py time-precise --at "…"          # modern minute/second extension — only on explicit request
+python scripts/meihua_calc.py gua 2 3 1 --at "…"             # upper, lower, moving line worked out by hand
 python scripts/meihua_calc.py gregorian 2024 1 18 14   # Gregorian + hour
 python scripts/meihua_calc.py lunar 2023 12 8 14       # lunar directly
 python scripts/meihua_calc.py num 6 8 9                # 2 or 3 numbers
@@ -45,7 +46,8 @@ python scripts/meihua_calc.py convert 2024 1 18        # Gregorian → lunar onl
 
 # Coin (六爻) casting CLI
 python scripts/jinqian_gua.py random
-python scripts/jinqian_gua.py random --day 甲子 --month 寅 --ask 求財   # adds Najia annotation
+python scripts/jinqian_gua.py random --at "2026-10-12 16:25" --ask 求財   # Najia annotation, verdict rule chain, dated timing
+python scripts/jinqian_gua.py manual … --at "…" --ask 父母 --illness 近病  # illness: the patient is the 用神; say 近病 or 久病
 python scripts/jinqian_gua.py manual 背背字 字背字 背背背 字字字 背字背 字背背
 python scripts/jinqian_gua.py interactive
 
@@ -67,7 +69,7 @@ The `experiments/prediction-validation/` subproject has its own `requirements.tx
 3. **Interpret in a prescribed order** — line text (yaoci) first, then ti-yong, mutual hexagram, transformed hexagram, hexagram relationships, timing. Each step has a dedicated `references/*.md`.
 
    Three layers in the script's output are **deliberately not 原書 method** and must not be cited as Shao Yong's: 爻位盤 (當位/得中/應/承乘) comes from 《周易》義理 line-position theory, 錯卦/綜卦 from 卦變, and 卦德 from 《說卦傳》. They are added lenses. The 分/秒 precision extension is likewise modern — `time-shichen` gives the traditional 2-hour behaviour.
-4. **Output the strategy block** — this is mandatory and the format is fixed in `SKILL.md` (本卦 / 爻辭吉語比例 / 類型 / 策略 / 下一步 / 變卦路徑). The 6 strategy types (吸引子/排斥子/福地/困境/陷阱/一般 → 留/走/守/變/慎/觀) live in `HEXAGRAM_STRATEGY` in [meihua_calc.py:573](scripts/meihua_calc.py:573) and in `references/hexagram-strategy.md` — keep them in sync (Tier 6 `TestStrategyMarkdownSync` enforces both directions).
+4. **Give the verdict in the `SKILL.md` §5 format** (斷語 + 把握度 / 為什麼 / 驗證點 / 建議 / 應期 / 驗卦紀錄). The strategy block (本卦 / 爻辭吉語比例 / 類型 / 策略 / 變卦路徑) was mandatory in v3 and is an optional appendix since v4. The 6 strategy types (吸引子/排斥子/福地/困境/陷阱/一般 → 留/走/守/變/慎/觀) live in `HEXAGRAM_STRATEGY` in [meihua_calc.py:573](scripts/meihua_calc.py:573) and in `references/hexagram-strategy.md` — keep them in sync (Tier 6 `TestStrategyMarkdownSync` enforces both directions).
 
 **The percentages are a text metric, not a probability.** They are 爻辭吉語比例 — auspicious-word density across the 384 line texts, from the sibling project `muyen/decoding-iching`, whose author has since retracted the hexagram-level classification (n=6 lines per hexagram; shuffled labels give equally extreme "attractors", p=0.35/0.52). This fork keeps the layer for ranking the *tone* of change-paths and labels it honestly everywhere it surfaces. Never render it as 吉率 or as a success probability in user-facing output. Whether to follow upstream and delete the layer outright is an open decision — don't resolve it unilaterally.
 

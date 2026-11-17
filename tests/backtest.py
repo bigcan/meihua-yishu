@@ -11,7 +11,7 @@
   1. 裝卦一致率  —— 六親、地支、世應與書中卦盤逐爻相同
   2. 用神取對率  —— 書中明寫「某爻為用神」的卦例，引擎取的是否同一地支
   3. 吉凶一致率  —— 引擎「用神綜合」方向 vs 書中結果
-  4. 應期命中率  —— 書中應驗之日的地支，是否在引擎的應期候選之內
+  4. 應期命中率  —— 書中應驗之日／月／年的地支，是否就是引擎的主應期，或在主、備兩個之內
 
 分組（gold 的 split 欄）：dev＝開發組，改規則時只看它的錯例；holdout＝保留組；
 fresh＝後來新標、從未用來調規則的保留組。保留組只在最後看數字，用來檢查規則是否只是在背開發組的答案。
@@ -51,7 +51,8 @@ def run_liuyao(path: str):
     cases = json.load(open(path, encoding="utf-8"))["cases"]
     stat = {"n": len(cases), "layout_ok": 0, "ys_n": 0, "ys_ok": 0,
             "v_n": 0, "同向": 0, "相反": 0, "未定": 0, "無判斷": 0,
-            "yq_n": 0, "yq_hit": 0, "yq_cands": 0,
+            "yq_n": 0, "yq_hit": 0, "yq_hit1": 0, "yq_cands": 0,
+            "yq_tuned_n": 0, "yq_tuned_hit": 0, "yq_untuned_n": 0, "yq_untuned_hit": 0,
             "all_ji": 0, **{f"{g}_{k}": 0 for g in GROUPS for k in ("n", "ok", "ji")}}
     miss = []
     for c in cases:
@@ -80,13 +81,16 @@ def run_liuyao(path: str):
             miss.append(f'{GROUPS[grp][0]} {c["id"]} {c["month"]}月{c["day"]}日 {c["hex"]}'
                         f'{"之" + c["bian"] if c["bian"] else ""}｜{c["question"][:22]}｜書：{c["outcome"]}'
                         f'（{c["result_text"][:24]}）｜引擎：{d}〔{(v or {}).get("rule", "")}〕')
-        days = [z[0] for z in c.get("yingqi", []) if z.endswith("日")]
-        if days and y:
-            tips = " ".join(nj.suggest_yingqi(h, y)[:-1])
-            cands = set(re.findall(r"([子丑寅卯辰巳午未申酉戌亥])日", tips))
+        want = [z[0] for z in c.get("yingqi", [])]
+        if want:
+            cands = [z for z, _ in nj.yingqi_candidates(h, r)]
+            grp_yq = "tuned" if c.get("split") == "dev" else "untuned"
             stat["yq_n"] += 1
-            stat["yq_hit"] += days[0] in cands
-            stat["yq_cands"] += len(cands)
+            stat["yq_hit1"] += bool(cands) and cands[0] == want[0]
+            stat["yq_hit"] += want[0] in cands[:2]
+            stat["yq_cands"] += len(cands[:2])
+            stat[f"yq_{grp_yq}_n"] += 1
+            stat[f"yq_{grp_yq}_hit"] += want[0] in cands[:2]
     return stat, miss
 
 
@@ -118,7 +122,9 @@ def main(argv):
     for g, name in GROUPS.items():
         print(f"    {name} {pct(ly[g + '_ok'], ly[g + '_n'])}　（一律猜吉 {pct(ly[g + '_ji'], ly[g + '_n'])}）")
     avg = ly["yq_cands"] / ly["yq_n"] if ly["yq_n"] else 0
-    print(f"  應期命中率   {pct(ly['yq_hit'], ly['yq_n'])}　（平均每卦列 {avg:.1f} 個候選日支；隨機猜中約 {100 * avg / 12:.0f}%）")
+    print(f"  應期命中率   主應期 {pct(ly['yq_hit1'], ly['yq_n'])}・主或備 {pct(ly['yq_hit'], ly['yq_n'])}"
+          f"　（只比地支，不論日月年；隨機猜中：主 8%、主或備約 {100 * avg / 12:.0f}%）")
+    print(f"    開發組 {pct(ly['yq_tuned_hit'], ly['yq_tuned_n'])}　其餘 {pct(ly['yq_untuned_hit'], ly['yq_untuned_n'])}")
     print("══ 梅花：原書占例 ══")
     print(f"  方向分一致率 {pct(mhs['同向'], mhs['n'])}")
     if "--miss" in argv or "--miss-all" in argv:
@@ -129,7 +135,7 @@ def main(argv):
         print("\n".join("  " + m for m in mh_miss))
     summary = {"layout_ok": ly["layout_ok"], "ys_ok": ly["ys_ok"], "verdict_ok": ly["同向"],
                "verdict_wrong": ly["相反"], "holdout_ok": ly["holdout_ok"], "fresh_ok": ly["fresh_ok"],
-               "yq_hit": ly["yq_hit"], "meihua_ok": mhs["同向"]}
+               "yq_hit": ly["yq_hit"], "yq_hit1": ly["yq_hit1"], "meihua_ok": mhs["同向"]}
     base_path = os.path.join(HERE, "backtest_baseline.json")
     if "--write-baseline" in argv:
         json.dump(summary, open(base_path, "w"), ensure_ascii=False, indent=1)

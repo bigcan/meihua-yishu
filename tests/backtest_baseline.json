@@ -5,6 +5,7 @@
  "verdict_wrong": 30,
  "holdout_ok": 42,
  "fresh_ok": 11,
- "yq_hit": 14,
+ "yq_hit": 29,
+ "yq_hit1": 22,
  "meihua_ok": 5
 }

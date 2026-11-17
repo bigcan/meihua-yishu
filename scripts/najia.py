@@ -935,33 +935,112 @@ def _verdict(h: AnnotatedHexagram, r: Dict, context: Optional[Dict] = None) -> D
 # 應期
 # ============================================================================
 
-def suggest_yingqi(h: AnnotatedHexagram, y: Optional[YaoNajia]) -> List[str]:
-    """《增刪卜易・應期章》規則化：依用神狀態給候選應期（以日／月地支表示）。"""
-    if not y:
-        return ["用神不上卦：以伏神地支值日、或沖開飛神之日為期；伏神休囚則所求難成。"]
-    tips: List[str] = []
+def yingqi_candidates(h: AnnotatedHexagram, r: Dict) -> List[Tuple[str, str]]:
+    """應期候選（地支, 理由），主應期在前，最多三個。
+
+    依《增刪卜易・各門類應期總注章》的條目次序取捨：
+    靜而逢值逢沖、動而逢合逢值、入三墓俱喜沖開、遇六合亦宜相擊、月破喜填（或逢合）、
+    旬空最愛填沖、化進神逢值逢合、「問有應于變爻動爻」。
+    事之遠近定單位：近事應日，遠事應月、年。
+    """
+    out: List[Tuple[str, str]] = []
+
+    def add(z: Optional[str], why: str) -> None:
+        if z and all(z != o for o, _ in out):
+            out.append((z, why))
+
+    y: Optional[YaoNajia] = r.get("primary")
+    rule = (r.get("verdict") or {}).get("rule", "")
+    shi = h.shi()
+    target = r.get("target_liuqin")
+
+    # 動爻化出用神者，應在變爻（問有應于變爻動爻）
+    if rule == "世化出用神":
+        add(shi.bian_zhi, "世爻化出之用神值日（變爻旬空則為出空之日）")
+        add(LIU_HE[shi.bian_zhi], "變爻逢合")
+    elif rule in ("動爻生世化出用神", "動爻化出用神生世"):
+        for m in r.get("bian_yongshen", []):
+            add(m.bian_zhi, "化出之用神值日（旬空則為出空之日）")
+            add(m.zhi, "動爻值日")
+    if y is None:
+        fs = r.get("fushen")
+        if fs:
+            add(fs["ganzhi"][1], "伏神值日而出現（旬空則為出空之日）")
+            add(LIU_CHONG[fs["fei"].zhi], "沖開飛神之日")
+        return out[:3]
+
     z, wx = y.zhi, y.wuxing
+    notes = " ".join(y.change_notes)
+    if y.is_changing and "回頭克" in notes:
+        add(LIU_CHONG[y.bian_zhi], "沖去回頭克之變爻")
+    if y.is_changing and y.bian_zhi in h.void_zhis:
+        add(y.bian_zhi, "變爻出空之日")
+        add(LIU_CHONG[y.bian_zhi], "沖空之日")
     if y.is_void:
-        tips.append(f"旬空：出旬後逢{z}日（填實）或{LIU_CHONG[z]}日（沖空）應")
+        add(z, "出旬填實之日")
+        add(LIU_CHONG[z], "沖空之日")
     if y.is_yue_po:
-        tips.append(f"月破：出月後，逢{z}日／月（填實）或{LIU_HE[z]}日（合破）應")
-    if y.is_ri_po:
-        tips.append(f"日破：逢{z}日填實或得生扶之日")
-    if y.is_ri_he or any("化合" in n for n in y.change_notes):
-        tips.append(f"逢合被絆：待{LIU_CHONG[z]}日沖開而應")
-    if y.is_ri_mu or any("化墓" in n for n in y.change_notes):
-        tips.append(f"入墓：逢{LIU_CHONG[MU[wx]]}日沖墓而出")
-    if y.is_changing and not y.is_void:
-        tips.append(f"用神動：逢{z}日（值日）或{LIU_HE[z]}日（合住）應")
-    if not y.is_changing and not y.is_void and not y.is_yue_po:
-        if y.state == "旺相":
-            tips.append(f"靜而旺：逢{LIU_CHONG[z]}日沖起而應（靜待沖）")
+        add(z, "月破喜填：實破之日")
+        add(LIU_HE[z], "破而逢合之日")
+    if y.is_ri_mu or "化墓" in notes:
+        add(LIU_CHONG[MU[wx]], "沖開墓庫之日")
+    if y.is_ri_he or "化合" in notes or (h.month_zhi and LIU_HE[z] == h.month_zhi):
+        add(LIU_CHONG[z], "逢合待沖開")
+    if y.is_changing:
+        if "進神" in notes:
+            add(z, "化進神逢值")
+            add(LIU_HE[z], "化進神逢合")
         else:
-            tips.append(f"靜而衰：逢生扶之日（{CHANGSHENG[wx]}長生、{wx}旺日）方應")
-    if y.strength >= 6:
-        tips.append(f"太旺：逢{MU[wx]}日（墓庫收之）應")
-    tips.append("近事應日、遠事應月；問年內之事可把上列地支換成月份")
+            add(LIU_HE[z], "動而逢合")
+            add(z, "動而逢值")
+        add(y.bian_zhi, "變爻值日")
+    else:
+        if h.day_ganzhi and z == h.day_ganzhi[1]:
+            add(z, "用神臨日辰：應在本日或下一個值日")
+        if y.month_score > 0 or y.day_score > 0:
+            add(LIU_CHONG[z], "靜而逢沖")
+            add(z, "靜而逢值")
+        else:
+            add(z, "衰者遇旺：值日")
+            add(CHANGSHENG[wx], "衰者遇生：長生之日")
+    return out[:3]
+
+
+def suggest_yingqi(h: AnnotatedHexagram, y: Optional[YaoNajia], r: Optional[Dict] = None) -> List[str]:
+    """應期候選的文字版（主應期在前）。r 為 find_yongshen 的結果；省略時只依用神本爻推。"""
+    r = r or {"primary": y, "target_liuqin": y.liuqin if y else None}
+    cands = yingqi_candidates(h, r)
+    if not cands:
+        return ["用神不上卦且無伏神可尋：應期無從推定"]
+    names = ["主應期", "備應期", "次備"]
+    tips = [f"{names[i]}：逢{z}（{why}）{_yingqi_dates(h, z)}" for i, (z, why) in enumerate(cands)]
+    tips.append("近事應日、遠事應月或年；把握度低時只報主應期")
     return tips
+
+
+def _yingqi_dates(h: AnnotatedHexagram, zhi: str) -> str:
+    """有占時（h.cast_at）就把地支換成西曆：下一個該支之日，與下一個該月建的起訖。"""
+    at = getattr(h, "cast_at", None)
+    if at is None or not h.day_ganzhi:
+        return ""
+    from datetime import timedelta
+    base = at.date() + timedelta(days=1 if at.hour == 23 else 0)   # 23 時起算次日
+    delta = (DIZHI.index(zhi) - DIZHI.index(h.day_ganzhi[1])) % 12
+    first = base + timedelta(days=delta or 12)
+    day_txt = (f"今日，其後 {first:%m/%d}" if delta == 0 else f"{first:%m/%d}") + f"、{first + timedelta(days=12):%m/%d}"
+    tz = getattr(h, "cast_tz", cal.DEFAULT_TZ_HOURS)
+    start = end = None
+    probe = at.replace(hour=12, minute=0, second=0)
+    for k in range(1, 400):
+        d = probe + timedelta(days=k)
+        mz = cal.month_zhi(d, tz)[0]
+        if start is None and mz == zhi and cal.month_zhi(d - timedelta(days=1), tz)[0] != zhi:
+            start = d
+        elif start is not None and mz != zhi:
+            end = d - timedelta(days=1)
+            break
+    month_txt = f"；{zhi}月 {start:%Y/%m/%d}–{end:%m/%d}" if start and end else ""
+    return f" → {zhi}日 {day_txt}{month_txt}"
 
 
 # ============================================================================
@@ -1068,7 +1147,7 @@ def print_yongshen(h: AnnotatedHexagram, r: Dict) -> None:
             print(f"  · {reason}")
         print(f"  ⇒ {v['label']}（依據：{v.get('rule', '生克多寡')}；方向分 {v['score']:+}）")
     print("\n【應期候選】")
-    for tip in suggest_yingqi(h, y):
+    for tip in suggest_yingqi(h, y, r):
         print(f"  • {tip}")
 
 
@@ -1150,6 +1229,8 @@ def main(argv: List[str]) -> None:
     if note:
         print(f"占時：{note}")
     h = annotate(b, args["changing"], day, month)
+    if args["at"]:
+        h.cast_at, h.cast_tz = cal.parse_local(args["at"]), args["tz"]
     print_hexagram(h)
     if args["ask"]:
         print_yongshen(h, find_yongshen(h, args["ask"], {"illness": args["illness"]}))

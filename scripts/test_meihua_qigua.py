@@ -34,7 +34,6 @@ from meihua_calc import (  # noqa: E402
     YEAR_INFOS,
     _analyze_hexagram,
     _month_days,
-    _MONTH_SEASON,
     _yao_name,
     analyze_guade,
     analyze_wangshuai,
@@ -43,7 +42,6 @@ from meihua_calc import (  # noqa: E402
     binary_to_gua_pair,
     get_cuo_gua,
     get_hexagram_binary,
-    get_season,
     get_year_dizhi,
     get_zong_gua,
     lunar_next_day,
@@ -277,12 +275,13 @@ class TestWangShuai(unittest.TestCase):
             text = fh.read()
 
         rows = re.findall(
-            r"^(春|夏|秋|冬|四季末)\|(木|火|土|金|水)\|(\S+)\|(\S+)\|(\S+)\|(\S+)\|(\S+)\s*$",
+            r"^(春|夏|秋|冬|辰戌丑未月)\|(木|火|土|金|水)\|(\S+)\|(\S+)\|(\S+)\|(\S+)\|(\S+)\s*$",
             text, re.M)
         self.assertEqual(len(rows), 5, f"§3.1 應有 5 季，實得 {len(rows)}")
 
         cells = 0
         for season, ruling, *states in rows:
+            season = "土月" if season == "辰戌丑未月" else season   # v4：整個辰戌丑未月土旺
             self.assertEqual(
                 SEASON_ELEMENT[season], ruling,
                 f"{season} 當旺五行：程式 {SEASON_ELEMENT[season]} vs 表 {ruling}")
@@ -303,10 +302,11 @@ class TestWangShuai(unittest.TestCase):
             text = fh.read()
 
         rows = re.findall(
-            r"^(春|夏|秋|冬|四季末) (\S+)（(?:木|火|土|金|水)旺） (\S+)（(?:木|火|土|金|水)死）\s*$",
+            r"^(春|夏|秋|冬|辰戌丑未月) (\S+)（(?:木|火|土|金|水)旺） (\S+)（(?:木|火|土|金|水)死）\s*$",
             text, re.M)
         self.assertEqual(len(rows), 5, f"第四應時令表應有 5 季，實得 {len(rows)}")
         for season, wang_gua, si_gua in rows:
+            season = "土月" if season == "辰戌丑未月" else season
             self.assertEqual(analyze_wangshuai(self.GUA_ELEMENT[wang_gua], season), "旺",
                              f"{season}·{wang_gua} 應為旺")
             self.assertEqual(analyze_wangshuai(self.GUA_ELEMENT[si_gua], season), "死",
@@ -320,20 +320,25 @@ class TestWangShuai(unittest.TestCase):
                 self.assertEqual(sorted(states), sorted(["旺", "相", "休", "囚", "死"]),
                                  f"{season} 五行狀態分配錯誤：{states}")
 
-    def test_sijimo_is_last_18_days(self):
-        """四季末＝農曆三、六、九、十二月的最後18天；缺了它土永不當令"""
-        info = YEAR_INFOS[2024 - 1900]
-        for month in (3, 6, 9, 12):
-            length = _month_days(info, month, False)
-            with self.subTest(month=month):
-                self.assertEqual(get_season(2024, month, length - 18), _MONTH_SEASON[month])
-                self.assertEqual(get_season(2024, month, length - 17), "四季末")
-                self.assertEqual(get_season(2024, month, length), "四季末")
+    def test_earth_rules_whole_chen_xu_chou_wei_months(self):
+        """v4：《梅花易數・卦氣旺》「坤艮土旺於辰戌丑未月」——整月土旺，以節氣定月建，
+        不再用「農曆季月最後 18 天」（那是五行曆法的土王用事說）。"""
+        from datetime import datetime
+        from meihua_calc import season_at
+        for when, zhi in ((datetime(2026, 4, 6, 12), "辰"), (datetime(2026, 5, 4, 12), "辰"),
+                          (datetime(2026, 7, 8, 12), "未"), (datetime(2026, 10, 12, 12), "戌"),
+                          (datetime(2026, 11, 6, 12), "戌"), (datetime(2027, 1, 20, 12), "丑")):
+            with self.subTest(when=when):
+                self.assertEqual(season_at(when)[:2], ("土月", zhi))
 
-    def test_non_earth_months_never_sijimo(self):
-        for month in (1, 2, 4, 5, 7, 8, 10, 11):
-            for day in (1, 15, 29):
-                self.assertEqual(get_season(2024, month, day), _MONTH_SEASON[month])
+    def test_non_earth_months_follow_solar_terms(self):
+        from datetime import datetime
+        from meihua_calc import season_at
+        for when, season in ((datetime(2026, 2, 5, 12), "春"), (datetime(2026, 3, 20, 12), "春"),
+                             (datetime(2026, 5, 6, 12), "夏"), (datetime(2026, 8, 8, 12), "秋"),
+                             (datetime(2026, 11, 8, 12), "冬"), (datetime(2026, 12, 25, 12), "冬")):
+            with self.subTest(when=when):
+                self.assertEqual(season_at(when)[0], season)
 
     def test_time_cast_emits_wangshuai_number_cast_does_not(self):
         """數字起卦無日期→無時令，該節必須從缺（猜today是捏造）"""
@@ -557,14 +562,14 @@ class TestZishiDayRoll(unittest.TestCase):
         last = _month_days(info, 6, False)
         result = qigua_by_time(2024, 6, last, 23)
         self.assertEqual(result["計算過程"]["日數"], 1)
-        self.assertEqual(result["計算過程"]["月數"], 7)
+        self.assertEqual(str(result["計算過程"]["月數"]), "7")
 
     def test_year_end_rolls_into_next_year(self):
         """臘月月末 23 時應進入次年正月初一，年地支同步進位"""
         info = YEAR_INFOS[2024 - 1900]
         last = _month_days(info, 12, False)
         result = qigua_by_time(2024, 12, last, 23)
-        self.assertEqual(result["計算過程"]["月數"], 1)
+        self.assertEqual(str(result["計算過程"]["月數"]), "1")
         self.assertEqual(result["計算過程"]["日數"], 1)
         self.assertIn(DIZHI[get_year_dizhi(2025)[0]], result["計算過程"]["年數"])
 
@@ -704,7 +709,7 @@ class TestNumbersAt(unittest.TestCase):
         at = qigua_by_numbers_at(2024, 7, 20, 23, 6, 8)      # 農曆 6/15 → 推 6/16
         timed = qigua_by_gregorian_time(2024, 7, 20, 23)
         self.assertEqual(at["卦氣旺衰"]["時令"], timed["卦氣旺衰"]["時令"])
-        self.assertIn("次日", at["計算過程"]["占時"])
+        self.assertIn("6月16日", at["計算過程"]["占時"])   # 農曆 6/15 的 23 時已推為 6/16
 
 
 # ============================================================================

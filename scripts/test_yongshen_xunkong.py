@@ -64,27 +64,36 @@ class TestXunKong(unittest.TestCase):
     def test_six_xun_heads(self):
         self.assertEqual(set(XUN_KONG.keys()), set(self.EXPECTED_VOID.keys()))
 
+    # v4：XUN_KONG 只存「旬首 → 空亡兩支」，各旬的十個干支改由 xunkong() 推導
+    # （GANZHI_TO_XUNKONG 為其全表）。以下四項改對推導結果驗證同樣的性質。
+    def _xun_members(self):
+        groups = {}
+        for gz, void in GANZHI_TO_XUNKONG.items():
+            groups.setdefault(tuple(void), []).append(gz)
+        return groups
+
     def test_each_xun_has_ten_ganzhi(self):
-        for xun_head, (gz_list, void) in XUN_KONG.items():
-            self.assertEqual(len(gz_list), 10, f"{xun_head} 旬應有 10 干支")
-            self.assertEqual(len(void), 2, f"{xun_head} 旬空應為 2 支")
+        groups = self._xun_members()
+        self.assertEqual(len(groups), 6)
+        for void, gz_list in groups.items():
+            self.assertEqual(len(gz_list), 10, f"空 {void} 之旬應有 10 干支")
+            self.assertEqual(len(void), 2)
 
     def test_void_zhi_correct(self):
         for xun_head, expected_void in self.EXPECTED_VOID.items():
-            self.assertEqual(XUN_KONG[xun_head][1], expected_void)
+            self.assertEqual(XUN_KONG[xun_head], expected_void)
+            self.assertEqual(GANZHI_TO_XUNKONG[xun_head], expected_void)
 
     def test_total_60_ganzhi_unique(self):
-        all_gz = [gz for (gz_list, _) in XUN_KONG.values() for gz in gz_list]
-        self.assertEqual(len(all_gz), 60, "六旬合計應為 60 干支")
-        self.assertEqual(len(set(all_gz)), 60, "60 干支不得重複")
+        self.assertEqual(len(GANZHI_TO_XUNKONG), 60, "六旬合計應為 60 干支")
+        self.assertEqual(sum(len(v) for v in self._xun_members().values()), 60)
 
     def test_void_rule_consistent(self):
         """每旬空支 = 12 地支中未被該旬 10 干支涵蓋的 2 支"""
-        for xun_head, (gz_list, void) in XUN_KONG.items():
+        for void, gz_list in self._xun_members().items():
             zhi_in_xun = {gz[1] for gz in gz_list}
-            zhi_not_in_xun = set(DIZHI) - zhi_in_xun
-            self.assertEqual(set(void), zhi_not_in_xun,
-                             f"{xun_head} 旬空計算與實際未涵蓋支不符")
+            self.assertEqual(set(void), set(DIZHI) - zhi_in_xun,
+                             f"空 {void} 之旬：空支與未涵蓋之支不符")
 
     def test_ganzhi_to_xunkong_reverse_lookup(self):
         """60 干支每個都能查到旬空"""
@@ -177,7 +186,8 @@ class TestSanHe(unittest.TestCase):
     }
 
     def test_four_combinations(self):
-        self.assertEqual(SAN_HE, self.EXPECTED)
+        # v4：SAN_HE 的鍵為三支 tuple、值為局之五行（「水」而非「水局」）
+        self.assertEqual({frozenset(k): v + "局" for k, v in SAN_HE.items()}, self.EXPECTED)
 
 
 class TestTianganDizhi(unittest.TestCase):
@@ -202,7 +212,8 @@ class TestYongshenMap(unittest.TestCase):
 
     # 各六親至少必須涵蓋的核心問事類型
     CORE_MAPPINGS = {
-        "兄弟": ["自身", "兄弟", "朋友", "同事", "競爭對手"],
+        "世": ["自身", "自己", "運勢"],          # v4：問自身取世爻，不取兄弟（《增刪卜易・用神章》）
+        "兄弟": ["兄弟", "朋友", "同事", "競爭者"],
         "父母": ["父母", "長輩", "房屋", "車輛", "文書", "契約", "學業"],
         "子孫": ["子女", "晚輩", "六畜", "藥物", "醫生"],
         "妻財": ["妻子", "財物", "錢財", "薪資", "求財", "買賣"],

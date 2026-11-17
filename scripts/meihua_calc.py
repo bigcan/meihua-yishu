@@ -658,6 +658,111 @@ def _analyze_hexagram(upper_gua: int, lower_gua: int, dong_yao: int,
             "讀法": "體卦旺相則事易成、可為；休囚死則力弱、宜緩。"
                   "旺相加吉、休囚減力——為程度修正，非獨立吉凶。",
         }
+    out.update(_analyze_dang_xiang_yingqi(
+        ti_gua, [("用卦", yong_gua), ("互卦上", hu_upper), ("互卦下", hu_lower), ("變卦之用", bian_changed)],
+        upper_gua, lower_gua, shiling))
+    return out
+
+
+_XIANG_KEYS = ("人物", "身體", "動物", "物品", "方位", "時辰", "數字")
+_XIANG_CACHE: Optional[Dict[str, Dict[str, str]]] = None
+
+
+def load_bagua_xiang() -> Dict[str, Dict[str, str]]:
+    """八卦類象：直接讀 references/bagua-wanwu.md 各卦開頭的「基本屬性／類象」，不在程式裡另存一份。
+
+    找不到參考檔（例如單獨複製腳本）時回傳空表，類象一節從缺。
+    """
+    global _XIANG_CACHE
+    if _XIANG_CACHE is not None:
+        return _XIANG_CACHE
+    import os
+    import re
+    table: Dict[str, Dict[str, str]] = {}
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references", "bagua-wanwu.md")
+    try:
+        with open(path, encoding="utf-8") as f:
+            current = None
+            for line in f:
+                line = line.strip()
+                m = re.match(r"^([乾兌離震巽坎艮坤])卦 [☰☱☲☳☴☵☶☷]", line)
+                if m:
+                    current = table.setdefault(m.group(1), {})
+                    if len(table) > 8:
+                        break
+                    continue
+                if current is None or "：" not in line:
+                    continue
+                key, val = line.split("：", 1)
+                if key in _XIANG_KEYS and key not in current:
+                    current[key] = val.replace("（後天）", "")
+    except OSError:
+        table = {}
+    _XIANG_CACHE = table
+    return table
+
+
+def _analyze_dang_xiang_yingqi(ti_gua: int, layers: List[Tuple[str, int]], upper_gua: int, lower_gua: int,
+                               shiling: Optional[Dict]) -> Dict:
+    """克體／生體之黨、各卦旺衰、類象、應期——供斷「成敗輕重」「應在何事」「何時應」。
+
+    原書依據：
+    - 觀梅占：「兌金為體，離火克之。互中巽木，復三起離火，則克體之卦氣盛。」——他卦生克體之卦，為其黨。
+    - 體用總訣：體之卦氣宜盛；克體之卦宜衰。故各卦都列旺衰。
+    - 老人有憂色占：「行則應速，以其成卦之數中分而取其半；坐則應遲，增倍而取之；立則半遲半速，只以成卦之數取之。」
+    - 求財占：「欲知得財之日，生體之卦氣定之；欲知破財之日，克體之卦氣定之。」他占類推。
+    這裡只整理，不下斷語。
+    """
+    ti_el = BAGUA[ti_gua]["element"]
+    season = shiling["時令"] if shiling else None
+    rows = []
+    for label, g in layers:
+        el = BAGUA[g]["element"]
+        rows.append({"層": label, "卦": BAGUA[g]["name"], "五行": el, "對體": _relation_to_ti(ti_el, el),
+                     "旺衰": analyze_wangshuai(el, season) if season else None, "gua": g})
+    dang = []
+    for r in rows:
+        if r["對體"] not in ("克體", "生體"):
+            continue
+        helpers = [o for o in rows if o is not r and WUXING_SHENG[o["五行"]] == r["五行"]]
+        checks = [o for o in rows if o is not r and WUXING_KE[o["五行"]] == r["五行"]]
+        txt = f"{r['對體']}之卦：{r['卦']}{r['五行']}（{r['層']}）" + (f"・{r['旺衰']}" if r["旺衰"] else "")
+        if helpers:
+            txt += "；得" + "、".join(f"{o['卦']}{o['五行']}（{o['層']}）" for o in helpers) + "相生，其勢更盛"
+        if checks:
+            txt += "；被" + "、".join(f"{o['卦']}{o['五行']}（{o['層']}）" for o in checks) + "所克，其力受制"
+        dang.append(txt)
+    if not dang:
+        dang.append("用、互、變皆無生體、克體之卦：只論比和與體生、體克")
+    xiang_table = load_bagua_xiang()
+    xiang = []
+    seen = set()
+    for r in rows:
+        if r["卦"] in seen or r["卦"] not in xiang_table:
+            continue
+        seen.add(r["卦"])
+        x = xiang_table[r["卦"]]
+        xiang.append(f"{r['卦']}（{r['層']}・{r['對體']}）：" + "；".join(f"{k} {x[k]}" for k in _XIANG_KEYS if k in x))
+    yingqi: Dict[str, object] = {}
+    if shiling and shiling.get("時支數"):
+        n = upper_gua + lower_gua + shiling["時支數"]
+        yingqi["卦數"] = (f"上卦{upper_gua}＋下卦{lower_gua}＋{shiling['時支']}時{shiling['時支數']}＝{n}："
+                         f"行中問者取半 {n / 2:g}、立者如數 {n}、坐者加倍 {n * 2}（單位依事之遠近：時、日、月）")
+    for r in rows:
+        if r["對體"] in ("克體", "生體") and r["卦"] in xiang_table:
+            x = xiang_table[r["卦"]]
+            kind = "吉期（生體之卦氣）" if r["對體"] == "生體" else "凶期（克體之卦氣）"
+            yingqi.setdefault(kind, [])
+            item = f"{r['卦']}{r['五行']}：{x.get('時辰', '')}年月日時，或{r['五行']}旺之月日"
+            if item not in yingqi[kind]:
+                yingqi[kind].append(item)
+    out: Dict[str, object] = {"生克之黨": dang}
+    if season:
+        out["各卦旺衰"] = [f"{r['層']} {r['卦']}{r['五行']}・{r['旺衰']}（{r['對體']}）" for r in rows]
+    if xiang:
+        out["類象"] = xiang
+    if yingqi:
+        out["應期"] = yingqi
     return out
 
 
@@ -677,7 +782,8 @@ def _shiling(moment: Optional[datetime], tz_hours: float) -> Optional[Dict]:
     if moment is None:
         return None
     season, zhi, near = season_at(moment, tz_hours)
-    return {"時令": season, "月建": zhi, "近交節": near}
+    shichen_num, shichen_name = get_shichen(moment.hour)
+    return {"時令": season, "月建": zhi, "近交節": near, "時支數": shichen_num, "時支": shichen_name}
 
 
 def qigua_by_time(year: int, month: int, day: int, hour: int,
@@ -1132,6 +1238,21 @@ def print_result(result: Dict):
         for r in tz["各層"]:
             print(f"  {r['層']}：{r['卦']}{r['五行']} → {r['對體']}")
         print(f"  ⇒ {tz['總評']}（方向分 {tz['分數']:+}；為整理用的方向指標，最終以爻辭與事理為準）")
+
+    if "生克之黨" in result:
+        print("\n【七之二、克體生體之黨與各卦旺衰（原書：克體之卦氣盛則凶重，生體之卦受制則吉輕）】")
+        for line in result["生克之黨"]:
+            print(f"  {line}")
+        if result.get("各卦旺衰"):
+            print("  各卦旺衰：" + "；".join(result["各卦旺衰"]))
+    if result.get("類象"):
+        print("\n【七之三、類象（應在何人、何物、何處——取克體或生體之卦為主，餘卦為輔）】")
+        for line in result["類象"]:
+            print(f"  {line}")
+    if result.get("應期"):
+        print("\n【七之四、應期依據（擇一法並寫明）】")
+        for k, v in result["應期"].items():
+            print(f"  {k}：{v if isinstance(v, str) else '；'.join(v)}")
 
     if "爻位盤" in result:
         yp = result["爻位盤"]

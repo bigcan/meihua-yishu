@@ -118,6 +118,39 @@ class TestMeihua(unittest.TestCase):
             self.assertEqual(got, bins[short[dst]], path)
 
 
+class TestMeihuaDangXiangYingqi(unittest.TestCase):
+    """v4.3：克體之黨、類象、應期依據（只整理，不下斷語）。"""
+
+    def test_guanmei_ke_ti_faction(self):
+        """觀梅占：「離火克之。互中巽木，復三起離火，則克體之卦氣盛。」"""
+        r = mh._analyze_hexagram(2, 3, 1)
+        line = next(x for x in r["生克之黨"] if x.startswith("克體之卦：離火"))
+        self.assertIn("得巽木（互卦下）相生", line)
+        self.assertTrue(any(x.startswith("生體之卦：艮土") and "被巽木" in x for x in r["生克之黨"]))
+
+    def test_ji_bei_ming_faction(self):
+        """雞悲鳴占：乾金為體，互離火克之，巽木生離火——「卦中巽木離火，有烹飪之象」。"""
+        r = mh._analyze_hexagram(5, 1, 4)
+        self.assertTrue(any(x.startswith("克體之卦：離火") and "得巽木" in x for x in r["生克之黨"]))
+
+    def test_xiang_comes_from_reference_file(self):
+        table = mh.load_bagua_xiang()
+        self.assertEqual(set(table), set("乾兌離震巽坎艮坤"))
+        self.assertIn("股", table["巽"]["身體"])          # 觀梅占「巽為股」
+        self.assertIn("少女", table["兌"]["人物"])
+        r = mh._analyze_hexagram(2, 3, 1)
+        self.assertTrue(any(x.startswith("巽") and "股" in x for x in r["類象"]))
+
+    def test_gua_number_timing(self):
+        """老人有憂色占：乾一巽五加卯時四共十數，行中取半，斷五日。"""
+        shiling = {"時令": "春", "月建": "卯", "近交節": False, "時支數": 4, "時支": "卯"}
+        r = mh._analyze_hexagram(1, 5, 4, shiling)
+        self.assertIn("＝10", r["應期"]["卦數"])
+        self.assertIn("取半 5", r["應期"]["卦數"])
+        self.assertIn("凶期（克體之卦氣）", r["應期"])      # 乾金克巽木之體
+        self.assertNotIn("卦數", mh._analyze_hexagram(1, 5, 4).get("應期", {}))  # 無占時不猜
+
+
 class TestNajia(unittest.TestCase):
     def test_qian_zhuangua(self):
         h = nj.annotate("111111")
@@ -294,6 +327,31 @@ class TestVerdictRules(unittest.TestCase):
         h, _, _ = self.run_case("ZS058")                 # 申月辰日，亥水得月生而入日墓
         y = next(x for x in h.yaos if x.zhi == "亥")
         self.assertEqual(y.day_score, 0)
+
+    def test_yingqi_main_candidate(self):
+        """各門類應期總注章：每種狀態的主應期，各以一例釘住。"""
+        for cid, want, why in (
+            ("ZS035", "午", "伏神值日（候文書，甲午日得）"),
+            ("ZS079", "酉", "世化出之財值日（酉日得財）"),
+            ("ZS008", "子", "沖去回頭克之變爻（丙子日得見）"),
+            ("ZS097", "申", "靜而逢沖（申日文書到）"),
+            ("ZS043", "丑", "化進神逢值（丑日得差）"),
+            ("ZS187", "亥", "旬空出旬填實（出空之日見官）"),
+        ):
+            h, r, _ = self.run_case(cid)
+            cands = nj.yingqi_candidates(h, r)
+            self.assertEqual(cands[0][0], want, f"{cid} {why}: {cands}")
+
+    def test_yingqi_dates(self):
+        """地支換西曆：2026-11-17 為乙未日，下一個辰日是 11/26；23 時起算次日。"""
+        h = nj.annotate("111001", [2], "乙未", "亥")
+        h.cast_at = datetime(2026, 11, 17, 14, 10)
+        self.assertIn("辰日 11/26、12/08", nj._yingqi_dates(h, "辰"))
+        self.assertIn("今日", nj._yingqi_dates(h, "未"))
+        self.assertIn("辰月 2027/04/05", nj._yingqi_dates(h, "辰"))
+        h = nj.annotate("111001", [2], "丙申", "亥")       # 11/17 23:30 已算丙申日
+        h.cast_at = datetime(2026, 11, 17, 23, 30)
+        self.assertIn("辰日 11/26", nj._yingqi_dates(h, "辰"))
 
     def test_every_dated_chart_gets_a_verdict(self):
         for cid in ("ZS035", "ZS141", "ZS184", "ZS186"):
