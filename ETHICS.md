@@ -117,11 +117,11 @@ In these situations, recommend consulting professionals:
 - "Absolute success"
 - "Destined by fate"
 
-✅ **Use**:
-- "Tends toward..."
-- "May..."
-- "Shows signs of..."
-- "When conditions are met..."
+✅ **Use** (direct verdicts, since v4.1):
+- A clear verdict: "This hexagram reads as yes / no", "expect it in early December" — state what the hexagram shows, never as a guarantee about reality (the four phrasings above stay banned)
+- A confidence grade (甲／乙／丙) saying how unambiguous the chart is, in place of softeners such as "tends toward" or "may"; the grade is not a probability and takes no percentage
+- "When conditions are met...", "If… then…"
+- Dated, checkable points with every verdict, logged for later verification
 
 ### 4.2 Balanced Statements
 

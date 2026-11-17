@@ -121,7 +121,7 @@ def throw_one_yao(rng: Optional[random.Random] = None) -> List[int]:
 
 def random_hexagram(seed: Optional[int] = None) -> CoinHexagram:
     """隨機擲 6 次成卦（自下而上）"""
-    rng = random.Random(seed) if seed is not None else random
+    rng = random.Random(seed) if seed is not None else random.SystemRandom()
     yaos = [Yao(position=i + 1, coins=throw_one_yao(rng)) for i in range(6)]
     return CoinHexagram(yaos=yaos)
 
@@ -260,6 +260,35 @@ def _zhuxi_main_yao(hex_: CoinHexagram, changing: List[int]) -> Optional[str]:
     return None
 
 
+def zhuxi_texts(hex_: CoinHexagram, ben_num: int, bian_num: int) -> List[str]:
+    """依朱熹法列出應讀的卦爻辭原文（主者在前）。"""
+    try:
+        import yaoci_lookup as yl
+    except ImportError:
+        return []
+    ch = hex_.changing_positions()
+    static = [y.position for y in hex_.yaos if not y.is_changing]
+    n = len(ch)
+    try:
+        if n == 0:
+            return [yl.format_guaci(ben_num)]
+        if n == 1:
+            return [yl.format_line(ben_num, ch[0])]
+        if n == 2:
+            return ["（主）" + yl.format_line(ben_num, max(ch)), "（次）" + yl.format_line(ben_num, min(ch))]
+        if n == 3:
+            return ["（貞・本卦）" + yl.format_guaci(ben_num), "（悔・變卦）" + yl.format_guaci(bian_num)]
+        if n == 4:
+            return ["（主）" + yl.format_line(bian_num, min(static)), "（次）" + yl.format_line(bian_num, max(static))]
+        if n == 5:
+            return [yl.format_line(bian_num, static[0])]
+        if ben_num in (1, 2):
+            return [yl.format_line(ben_num, 7)]
+        return [yl.format_guaci(bian_num)]
+    except OSError:
+        return []
+
+
 # ----------------------------------------------------------------------------
 # 輸出
 # ----------------------------------------------------------------------------
@@ -288,6 +317,8 @@ def print_result(
     najia_day: Optional[str] = None,
     najia_month: Optional[str] = None,
     najia_ask: Optional[str] = None,
+    najia_at: Optional[str] = None,
+    najia_tz: float = 8.0,
 ) -> None:
     result = result or analyze(hex_)
     print("\n" + "=" * 56)
@@ -311,29 +342,26 @@ def print_result(
     print(f"【解卦法】{dong['解卦法']}")
     if dong["主爻"]:
         print(f"【主爻】{dong['主爻']}")
+    for line in zhuxi_texts(hex_, ben["序號"], bian["序號"]):
+        print(f"  ▶ {line}")
 
-    # 納甲標註（若提供日干支等資訊）
-    if najia_day or najia_month or najia_ask:
-        try:
-            from najia import annotate as najia_annotate
-            from najia import find_yongshen, print_hexagram, print_yongshen
-            h = najia_annotate(
-                ben["二進位"],
-                changing=dong["位置"],
-                day_ganzhi=najia_day,
-                month_zhi=najia_month,
-            )
-            print_hexagram(h)
-            if najia_ask:
-                ys = find_yongshen(h, najia_ask)
-                print_yongshen(h, ys)
-        except Exception as e:
-            print(f"\n[納甲標註失敗：{e}]")
+    # 納甲標註：有占時（--at）或手動日月時自動裝卦
+    if najia_day or najia_month or najia_ask or najia_at:
+        from najia import annotate as najia_annotate
+        from najia import find_yongshen, print_hexagram, print_yongshen, resolve_day_month
+        day, month, note = resolve_day_month(najia_day, najia_month, najia_at, najia_tz)
+        if note:
+            print(f"\n【占時】{note}")
+        h = najia_annotate(ben["二進位"], changing=dong["位置"], day_ganzhi=day, month_zhi=month)
+        print_hexagram(h)
+        if najia_ask:
+            print_yongshen(h, find_yongshen(h, najia_ask))
+        else:
+            print("\n提示：加 --ask <問事> 可定用神、原忌神與應期（python najia.py list-questions）")
     else:
         print("\n" + "=" * 56)
-        print("提示：加入 --day <日干支> --month <月支> --ask <問事>")
-        print("      可一併輸出納甲、世應、六親、六獸、旬空、用神。")
-        print("      例：python jinqian_gua.py random --day 甲子 --month 寅 --ask 求財")
+        print("提示：六爻斷卦必須有月建與日辰。加 --at \"YYYY-MM-DD HH:MM\"（起卦當地時間）")
+        print("      與 --ask <問事>，即自動裝卦、判旺衰、定用神與應期。")
         print("=" * 56)
 
 
@@ -343,7 +371,8 @@ def print_result(
 
 def _split_najia_flags(args: List[str]) -> Tuple[List[str], dict]:
     """從 CLI args 中分離出 --day/--month/--ask 等納甲旗標，回傳 (剩餘 args, najia_kwargs)"""
-    nj = {"najia_day": None, "najia_month": None, "najia_ask": None}
+    nj = {"najia_day": None, "najia_month": None, "najia_ask": None,
+          "najia_at": None, "najia_tz": 8.0}
     out: List[str] = []
     i = 0
     while i < len(args):
@@ -357,6 +386,12 @@ def _split_najia_flags(args: List[str]) -> Tuple[List[str], dict]:
         elif a == "--ask" and i + 1 < len(args):
             nj["najia_ask"] = args[i + 1]
             i += 2
+        elif a == "--at" and i + 1 < len(args):
+            nj["najia_at"] = args[i + 1]
+            i += 2
+        elif a == "--tz" and i + 1 < len(args):
+            nj["najia_tz"] = float(args[i + 1])
+            i += 2
         else:
             out.append(a)
             i += 1
@@ -365,7 +400,10 @@ def _split_najia_flags(args: List[str]) -> Tuple[List[str], dict]:
 
 def _cli_random(args: List[str]) -> None:
     args, nj = _split_najia_flags(args)
-    seed = int(args[0]) if args else None
+    if args and args[0] in ("-h", "--help", "help"):
+        print(HELP)
+        return
+    seed = int(args[0]) if args and args[0].lstrip("-").isdigit() else None
     hex_ = random_hexagram(seed=seed)
     print_result(hex_, **nj)
 
@@ -380,7 +418,8 @@ def _cli_manual(args: List[str]) -> None:
     print_result(hex_, **nj)
 
 
-def _cli_interactive() -> None:
+def _cli_interactive(args: List[str]) -> None:
+    _, nj = _split_najia_flags(args)
     print("=" * 56)
     print("🪙 金錢卦手動輸入（共 6 次，自下而上）")
     print("=" * 56)
@@ -401,34 +440,27 @@ def _cli_interactive() -> None:
             except ValueError as e:
                 print(f"  ✗ {e}，請重新輸入。")
     hex_ = manual_hexagram(throws)
-    print_result(hex_)
+    print_result(hex_, **nj)
 
 
 HELP = """\
 用法：
-  python jinqian_gua.py random [seed] [--day 甲子] [--month 寅] [--ask 求財]
-  python jinqian_gua.py manual <t1> <t2> ... <t6> [--day ... --month ... --ask ...]
-  python jinqian_gua.py interactive
+  python jinqian_gua.py random [seed] --at "YYYY-MM-DD HH:MM" --ask 求財
+  python jinqian_gua.py manual <t1> ... <t6> --at "YYYY-MM-DD HH:MM" --ask 工作
+  python jinqian_gua.py interactive --at "YYYY-MM-DD HH:MM" --ask 婚姻
   python jinqian_gua.py help
 
-擲卦符號：
+擲卦符號（每次 3 枚）：
   背=陽=3：背、陽、正、花、H、1、+
   字=陰=2：字、陰、反、T、0、-
+  一背＝少陽、二背＝少陰、三背＝老陽（動）、三字＝老陰（動）
+順序：自下而上（第 1 次＝初爻，第 6 次＝上爻）
 
-順序：自下而上（第 1 次=初爻，第 6 次=上爻）
-
-納甲選項（可選）：
-  --day   日干支（例 甲子）→ 啟用六獸、旬空、日破、日合
-  --month 月支（例 寅）→ 啟用月破
-  --ask   問事類型 → 自動定用神並推應期
-
-範例：
-  python jinqian_gua.py random
-  python jinqian_gua.py random 42
-  python jinqian_gua.py random --day 甲子 --month 寅 --ask 求財
-  python jinqian_gua.py manual 背背字 字背字 背背背 字字字 背字背 字背背
-  python jinqian_gua.py manual 110 010 111 000 101 011 --day 甲子 --ask 工作
-  python jinqian_gua.py interactive
+納甲選項：
+  --at    起卦當地時間 → 自動算月建（依節氣）、日干支（23 時起算次日）。強烈建議必帶。
+  --tz    時區（小時，預設 8）
+  --day / --month  手動覆蓋日干支／月建
+  --ask   問事類型 → 用神、原忌神、用神綜合、應期（python najia.py list-questions）
 """
 
 
@@ -442,7 +474,7 @@ def main(argv: List[str]) -> None:
     elif cmd == "manual":
         _cli_manual(rest)
     elif cmd == "interactive":
-        _cli_interactive()
+        _cli_interactive(rest)
     else:
         print(f"未知指令：{cmd}\n")
         print(HELP)

@@ -1,0 +1,13 @@
+{
+ "about": "《梅花易數》原書占例標準答案 v0.1。upper/lower 為先天卦數，dong 為動爻；outcome 為書中結果。",
+ "cases": [
+  {"id": "MH01", "name": "觀梅占", "upper": 2, "lower": 3, "dong": 1, "outcome": "凶", "result_text": "女子折花墜地傷股（傷而不危）"},
+  {"id": "MH02", "name": "牡丹占", "upper": 1, "lower": 5, "dong": 5, "outcome": "凶", "result_text": "花為馬所踐毀"},
+  {"id": "MH03", "name": "老人有憂色占", "upper": 1, "lower": 5, "dong": 4, "outcome": "凶", "result_text": "五日後魚骨鯁喉而終"},
+  {"id": "MH04", "name": "少年有喜色占", "upper": 7, "lower": 3, "dong": 5, "outcome": "吉", "result_text": "十七日內有聘幣之喜"},
+  {"id": "MH05", "name": "牛哀鳴占", "upper": 8, "lower": 6, "dong": 3, "outcome": "凶", "result_text": "二十一日內被屠"},
+  {"id": "MH06", "name": "雞悲鳴占", "upper": 5, "lower": 1, "dong": 4, "outcome": "凶", "result_text": "十日後被烹"},
+  {"id": "MH07", "name": "枯枝墜地占", "upper": 3, "lower": 2, "dong": 4, "outcome": "凶", "result_text": "十日後樹被伐"},
+  {"id": "MH08", "name": "西林寺額占", "upper": 7, "lower": 8, "dong": 3, "outcome": "凶", "result_text": "寺中有陰人之禍"}
+ ]
+}

@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Status of this branch (v4.1) — read first
+
+`SKILL.md`, `references/` and `scripts/` on this branch are **v4.1**, imported from the installed skill (the v4 audit rewrite of 2026-10-12 was made outside this repo) plus the 2026-11-17 direct-verdict changes. See `CHANGELOG.md`. Much of the rest of this file still describes v3 and is stale where they differ:
+
+- Meihua `time` now defaults to Shao Yong's year/month/day/hour method; second precision is `time-precise`. Pass `--at "YYYY-MM-DD HH:MM"` (and `--tz`) — 卦氣 and 月建 follow solar terms via `scripts/calendar_util.py`.
+- The strategy block is an optional appendix, no longer mandatory output.
+- **Tests that are green on v4.1**: `python tests/test_skill.py` (25) and `python tests/backtest.py --baseline`. The eight-tier suite under `scripts/test_*.py` has **not** been ported: `test_meihua_qigua` fails to import and 15 other tests fail, because v4 changed data structures and output section names. Do not read those failures as regressions, and do not delete the suite — port it.
+- `python tests/backtest.py --miss` scores the engines against worked cases from 《增刪卜易》 and 《梅花易數》. Any change to judgement logic in `najia.py` / `meihua_calc.py` must not regress `tests/backtest_baseline.json`; update the baseline only when the numbers improve.
+- `python scripts/build_package.py` still builds all three shapes from this tree.
+
 ## What this repo is
 
 This is **not a typical application repo** — it is the source of the `meihua-yishu` Claude Code Skill (Meihua Yishu / Plum Blossom I Ching divination). The "code" is mostly:
@@ -125,7 +135,7 @@ If you add a new historical rule, prefer adding a test that references its prima
 
 ## Ethics and tone (from `ETHICS.md`)
 
-The skill is constrained to non-deterministic language ("傾向", "可能", never "一定"); must present both auspicious and inauspicious readings; will not predict death timing; redirects medical/legal/financial questions to professionals; and does not perform divination on self-harm topics. Preserve these constraints when editing `SKILL.md`.
+Since v4.1 the skill gives a direct verdict with a 甲/乙/丙 confidence grade and dated verification points instead of softeners ("傾向", "可能") — the owner's explicit decision of 2026-11-17. It still never says "一定"/"絕對"/"保證"; must present both auspicious and inauspicious readings; will not predict death timing; redirects medical/legal/financial questions to professionals; and does not perform divination on self-harm topics. Preserve these constraints when editing `SKILL.md`.
 
 `SKILL.md` deliberately carries **no hotline numbers or region-specific crisis resources** — that was tried and removed as unhelpful. Do not re-add them; a hardcoded number in a prompt file goes stale and cannot be verified from inside the repo. Rely on the model's own handling instead.
 

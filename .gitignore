@@ -17,8 +17,7 @@ venv/
 *.swp
 *.swo
 
-# Tests (local only)
-tests/
+# tests/ 自 v4.1 起納入版本控制（test_skill.py、古例回測與標準答案）；打包時不會帶入
 
 # Build output (scripts/build_package.py)
 dist/
