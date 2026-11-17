@@ -1,5 +1,5 @@
 {
- "about": "《增刪卜易》卦例標準答案 v0.1。target＝野鶴所取用神（世/應/六親）；outcome＝書中所記結果對所問之事為吉或凶；null＝天時、風水、行人應期、再占合參等不宜用單一吉凶評分者，或結果不明。標註為人工速讀，屬初版，發現錯標請直接改此檔。 illness＝書中明言近病或久病者（占病專則用）。評分時奇數編號為開發組、偶數編號為保留組。",
+ "about": "《增刪卜易》卦例標準答案 v0.2。target＝野鶴所取用神（世/應/六親）；outcome＝書中所斷或所記結果，對所問之事為吉或凶（行人問來否者，來為吉、不來為凶）；yingqi＝書中應驗之日／月／年的地支；illness＝書中明言近病或久病者。split：dev＝開發組（調規則時可看其錯例）；holdout＝保留組；fresh＝v0.2 新標、從未用來調規則的保留組；null＝不評分（天時、風水、壽數、再占合參、結果混雜或不明者）。v0.2 已逐例對原文複核一次；發現錯標請直接改此檔並在 CHANGELOG 記一筆。",
  "cases": [
   {
    "id": "ZS001",
@@ -53,7 +53,8 @@
    ],
    "result_text": "果于丑日起牀",
    "note": "",
-   "illness": "近病"
+   "illness": "近病",
+   "split": "dev"
   },
   {
    "id": "ZS002",
@@ -108,7 +109,8 @@
    ],
    "result_text": "果于寅日早見木日得財",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS003",
@@ -163,7 +165,8 @@
    ],
    "result_text": "果卒于癸卯日",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS004",
@@ -215,7 +218,8 @@
    "yingqi": [],
    "result_text": "後蒙恩免死",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS005",
@@ -269,7 +273,8 @@
    "yingqi": [],
    "result_text": "果至重刑",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS006",
@@ -321,7 +326,8 @@
    "yingqi": [],
    "result_text": "果于本日酉時遇名醫救活也",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS007",
@@ -368,10 +374,13 @@
    "target": "妻財",
    "outcome": "吉",
    "yongshen_zhi": "寅",
-   "yingqi": [],
+   "yingqi": [
+    "寅日"
+   ],
    "result_text": "果于甲寅得之",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS008",
@@ -425,7 +434,8 @@
    ],
    "result_text": "果得見于丙子日",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS009",
@@ -475,10 +485,13 @@
    "target": "官鬼",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "辰月"
+   ],
    "result_text": "果于三月升任云南太守",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS010",
@@ -533,7 +546,8 @@
    ],
    "result_text": "果于本年下獄至申年而重刑",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS011",
@@ -586,7 +600,8 @@
    "yingqi": [],
    "result_text": "果于六月疾至",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS012",
@@ -636,7 +651,8 @@
    "yingqi": [],
    "result_text": "果于次日卯時生",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS013",
@@ -685,10 +701,13 @@
    "target": "世",
    "outcome": "凶",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "亥月"
+   ],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS014",
@@ -735,13 +754,14 @@
     ]
    ],
    "question": "占出門﹐得明夷小過",
-   "target": null,
-   "outcome": null,
+   "target": "世",
+   "outcome": "凶",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "後因病重",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS015",
@@ -787,13 +807,14 @@
     ]
    ],
    "question": "占已悔婚還可成否得離卦變火山旅",
-   "target": null,
-   "outcome": null,
+   "target": "世",
+   "outcome": "吉",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "果于次年三月仍成婚；後朱陳；後必合好",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS016",
@@ -846,7 +867,8 @@
    "yingqi": [],
    "result_text": "後何事不亨；後功名屢困；後之補湊合成其局",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS017",
@@ -901,7 +923,8 @@
    "yingqi": [],
    "result_text": "後果勸散",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS018",
@@ -948,10 +971,13 @@
    "target": "妻財",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "辰日"
+   ],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS019",
@@ -1004,7 +1030,8 @@
    "yingqi": [],
    "result_text": "果此人去而復反者三次",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS020",
@@ -1056,7 +1083,8 @@
    ],
    "result_text": "果于子年建功卯年得意而歸",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS021",
@@ -1110,7 +1138,8 @@
    "yingqi": [],
    "result_text": "後果兩月；後離、先親後疏、先濃後淡；後敗、惟占官非",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS022",
@@ -1165,7 +1194,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS023",
@@ -1220,7 +1250,8 @@
    ],
    "result_text": "後死于寅日寅時；後悟月建在寅",
    "note": "野鶴自記：依常理許之可治，後死；歸因寅巳申三刑",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS024",
@@ -1269,10 +1300,13 @@
    "target": "父母",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "卯月"
+   ],
    "result_text": "果于二月得意而回",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS025",
@@ -1325,7 +1359,8 @@
    "yingqi": [],
    "result_text": "後有官府直接得缺",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS026",
@@ -1375,10 +1410,13 @@
    "target": "官鬼",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "卯月"
+   ],
    "result_text": "果于本月聞報",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS027",
@@ -1430,7 +1468,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS028",
@@ -1480,7 +1519,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS029",
@@ -1532,7 +1572,8 @@
    "yingqi": [],
    "result_text": "後因連日昏沈",
    "note": "原文標題（震之豐）與卦盤（震之噬嗑）不符，待校勘，不列入評分",
-   "illness": "近病"
+   "illness": "近病",
+   "split": null
   },
   {
    "id": "ZS030",
@@ -1578,13 +1619,14 @@
     ]
    ],
    "question": "占女痘，得 坤卦 變 師卦",
-   "target": null,
-   "outcome": null,
+   "target": "子孫",
+   "outcome": "吉",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS031",
@@ -1637,7 +1679,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS032",
@@ -1691,7 +1734,8 @@
    ],
    "result_text": "果于卯日得信",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS033",
@@ -1741,10 +1785,13 @@
    "target": "世",
    "outcome": "凶",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "申月"
+   ],
    "result_text": "果于七月",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS034",
@@ -1788,13 +1835,14 @@
     ]
    ],
    "question": "占得地澤臨",
-   "target": null,
-   "outcome": null,
+   "target": "官鬼",
+   "outcome": "吉",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "果于甲子年巳月仍以原品起用專補兩任；果于辰年三月",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS035",
@@ -1846,7 +1894,8 @@
    ],
    "result_text": "果得于甲午日",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS036",
@@ -1898,7 +1947,8 @@
    ],
    "result_text": "果于午日起牀",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS037",
@@ -1948,7 +1998,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS038",
@@ -2000,7 +2051,8 @@
    "yingqi": [],
    "result_text": "後人遇他卦",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS039",
@@ -2052,7 +2104,8 @@
    "yingqi": [],
    "result_text": "果得連捷",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS040",
@@ -2109,7 +2162,8 @@
    ],
    "result_text": "果于午日允婚",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS041",
@@ -2163,7 +2217,8 @@
    "yingqi": [],
    "result_text": "果于次年革職拿問",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS042",
@@ -2219,7 +2274,8 @@
    ],
    "result_text": "果得遇未日",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS043",
@@ -2273,7 +2329,8 @@
    ],
    "result_text": "果得于丑日",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS044",
@@ -2327,7 +2384,8 @@
    ],
    "result_text": "果于辰年得選豈可謂之動空化日月而不退也",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS045",
@@ -2376,10 +2434,13 @@
    "target": "世",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "辰日"
+   ],
    "result_text": "果于次日用鍼而愈",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS046",
@@ -2428,10 +2489,13 @@
    "target": "妻財",
    "outcome": "凶",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "辰日"
+   ],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS047",
@@ -2485,7 +2549,8 @@
    ],
    "result_text": "果卒于丑月",
    "note": "",
-   "illness": "久病"
+   "illness": "久病",
+   "split": "dev"
   },
   {
    "id": "ZS048",
@@ -2543,7 +2608,8 @@
    ],
    "result_text": "果卒于丑月",
    "note": "",
-   "illness": "久病"
+   "illness": "久病",
+   "split": "holdout"
   },
   {
    "id": "ZS049",
@@ -2592,10 +2658,13 @@
    "target": "父母",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "戌日"
+   ],
    "result_text": "果于甲戌出空卽愈",
    "note": "",
-   "illness": "近病"
+   "illness": "近病",
+   "split": "dev"
   },
   {
    "id": "ZS050",
@@ -2644,10 +2713,13 @@
    "target": "世",
    "outcome": "凶",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "未月"
+   ],
    "result_text": "後卒于六月",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS051",
@@ -2702,7 +2774,8 @@
    ],
    "result_text": "果卒于甲戌日",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS052",
@@ -2748,13 +2821,16 @@
     ]
    ],
    "question": "占出得屯之節",
-   "target": null,
-   "outcome": null,
+   "target": "世",
+   "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "亥月"
+   ],
    "result_text": "後至亥月方行由燕至粵",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS053",
@@ -2806,7 +2882,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS054",
@@ -2860,7 +2937,8 @@
    ],
    "result_text": "後報升于巳月",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS055",
@@ -2915,7 +2993,8 @@
    ],
    "result_text": "果于寅日揭榜",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS056",
@@ -2964,13 +3043,14 @@
     ]
    ],
    "question": "占母路隔千里何時來得火天大有變井",
-   "target": null,
-   "outcome": null,
+   "target": "父母",
+   "outcome": "凶",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "果于次年三月妹至",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS057",
@@ -3026,7 +3106,8 @@
    ],
    "result_text": "果開市于戌日；後見動日月而化空破；後日塡實愈旺彊",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS058",
@@ -3075,10 +3156,13 @@
    "target": "官鬼",
    "outcome": "吉",
    "yongshen_zhi": "亥",
-   "yingqi": [],
+   "yingqi": [
+    "巳日"
+   ],
    "result_text": "果于次日大愈",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS059",
@@ -3131,7 +3215,8 @@
    "yingqi": [],
    "result_text": "果然如是",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS060",
@@ -3183,7 +3268,8 @@
    ],
    "result_text": "果起牀于未日者",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS061",
@@ -3238,7 +3324,8 @@
    ],
    "result_text": "果于次年辰月蒙赦而出",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS062",
@@ -3290,7 +3377,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS063",
@@ -3342,7 +3430,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS064",
@@ -3396,7 +3485,8 @@
    ],
    "result_text": "果于卯日大晴",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS065",
@@ -3448,7 +3538,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS066",
@@ -3504,7 +3595,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS067",
@@ -3551,10 +3643,13 @@
    "target": "妻財",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "辰日"
+   ],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS068",
@@ -3609,7 +3704,8 @@
    ],
    "result_text": "果于辰年",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS069",
@@ -3664,7 +3760,8 @@
    ],
    "result_text": "果脫厄于巳年",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS070",
@@ -3716,7 +3813,8 @@
    ],
    "result_text": "果于卯年登科",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS071",
@@ -3768,7 +3866,8 @@
    "yingqi": [],
    "result_text": "後日何如；果于巳年被論；後逢沖開墓庫日",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS072",
@@ -3818,7 +3917,8 @@
    "yingqi": [],
    "result_text": "果于本日見官責杖二十；後時之月日可以塡之",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS073",
@@ -3872,7 +3972,8 @@
    ],
    "result_text": "果升于卯月",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS074",
@@ -3926,7 +4027,8 @@
    "yingqi": [],
    "result_text": "後竟掘之",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS075",
@@ -3979,7 +4081,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS076",
@@ -4028,10 +4131,13 @@
    "target": "妻財",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "寅日"
+   ],
    "result_text": "果于次日退災",
    "note": "",
-   "illness": null
+   "illness": "近病",
+   "split": "holdout"
   },
   {
    "id": "ZS077",
@@ -4086,7 +4192,8 @@
    ],
    "result_text": "果于卯日過關",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS078",
@@ -4139,7 +4246,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS079",
@@ -4188,10 +4296,13 @@
    "target": "妻財",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "酉日"
+   ],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS080",
@@ -4238,13 +4349,14 @@
     ]
    ],
    "question": "占脫役得損之節",
-   "target": null,
-   "outcome": null,
+   "target": "世",
+   "outcome": "吉",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "後人之法者",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS081",
@@ -4297,7 +4409,8 @@
    "yingqi": [],
    "result_text": "後至辛丑日尚亦見其凶非；果用爻太多",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS082",
@@ -4345,15 +4458,14 @@
     ]
    ],
    "question": "占候選何時得缺﹐得益變騫",
-   "target": "官鬼",
+   "target": "世",
    "outcome": "凶",
    "yongshen_zhi": null,
-   "yingqi": [
-    "寅月"
-   ],
+   "yingqi": [],
    "result_text": "果然在第二年寅月沒有中榜",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS083",
@@ -4405,7 +4517,8 @@
    "yingqi": [],
    "result_text": "果于八月；後可得",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS084",
@@ -4457,7 +4570,8 @@
    "yingqi": [],
    "result_text": "果于戌日申時雨；後更張",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS085",
@@ -4507,7 +4621,8 @@
    "yingqi": [],
    "result_text": "後果無音訊",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS086",
@@ -4559,7 +4674,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS087",
@@ -4609,12 +4725,12 @@
    "outcome": "吉",
    "yongshen_zhi": null,
    "yingqi": [
-    "亥日",
-    "巳月"
+    "亥日"
    ],
    "result_text": "果于丁亥日全愈；後至巳月亥逢月破",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS088",
@@ -4667,7 +4783,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS089",
@@ -4719,7 +4836,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS090",
@@ -4771,7 +4889,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS091",
@@ -4824,7 +4943,8 @@
    "yingqi": [],
    "result_text": "後照應",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS092",
@@ -4874,7 +4994,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS093",
@@ -4924,7 +5045,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS094",
@@ -4977,7 +5099,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS095",
@@ -5030,7 +5153,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS096",
@@ -5083,7 +5207,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS097",
@@ -5135,7 +5260,8 @@
    ],
    "result_text": "果于申日文書實收俱到",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS098",
@@ -5187,7 +5313,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS099",
@@ -5233,13 +5360,14 @@
     ]
    ],
    "question": "占本月月令。得遁之姤卦",
-   "target": null,
-   "outcome": null,
+   "target": "世",
+   "outcome": "凶",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS100",
@@ -5291,7 +5419,8 @@
    "yingqi": [],
    "result_text": "果不久病愈",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS101",
@@ -5343,7 +5472,8 @@
    "yingqi": [],
    "result_text": "果于八月其子驚風",
    "note": "",
-   "illness": "近病"
+   "illness": "近病",
+   "split": "dev"
   },
   {
    "id": "ZS102",
@@ -5397,7 +5527,8 @@
    ],
    "result_text": "果死于卯日；後因刻板錯誤；後增刪",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS103",
@@ -5449,7 +5580,8 @@
    "yingqi": [],
    "result_text": "後卷有之",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS104",
@@ -5501,7 +5633,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS105",
@@ -5553,7 +5686,8 @@
    "yingqi": [],
    "result_text": "後滿天紅日無云",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS106",
@@ -5605,7 +5739,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS107",
@@ -5657,7 +5792,8 @@
    "yingqi": [],
    "result_text": "果一日陰云申時而見日色；後章又曰：父持月建必然陰雨連旬",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS108",
@@ -5709,7 +5845,8 @@
    "yingqi": [],
    "result_text": "果于次日卯時",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS109",
@@ -5762,7 +5899,8 @@
    "yingqi": [],
    "result_text": "果于戌時；果是難望",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS110",
@@ -5814,7 +5952,8 @@
    "yingqi": [],
    "result_text": "果于辰日天變；後晴明",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS111",
@@ -5867,7 +6006,8 @@
    "yingqi": [],
    "result_text": "果于酉時忽然天開",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS112",
@@ -5920,7 +6060,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS113",
@@ -5972,7 +6113,8 @@
    "yingqi": [],
    "result_text": "後卦申金爻動庚申日雨辛酉半陰晴亥時大晴",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS114",
@@ -6024,7 +6166,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS115",
@@ -6076,7 +6219,8 @@
    "yingqi": [],
    "result_text": "果于酉時霧散天開",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS116",
@@ -6126,7 +6270,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS117",
@@ -6178,7 +6323,8 @@
    "yingqi": [],
    "result_text": "後遇沖空實空之日必然動雷",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS118",
@@ -6228,7 +6374,8 @@
    "yingqi": [],
    "result_text": "果于次日常見陰云",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS119",
@@ -6280,7 +6427,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS120",
@@ -6332,7 +6480,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS121",
@@ -6386,7 +6535,8 @@
    "yingqi": [],
    "result_text": "果雨旬日",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS122",
@@ -6439,7 +6589,8 @@
    "yingqi": [],
    "result_text": "果然兩月不雨",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS123",
@@ -6494,7 +6645,8 @@
    "yingqi": [],
    "result_text": "果于次日晴還又雨",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS124",
@@ -6548,7 +6700,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS125",
@@ -6601,7 +6754,8 @@
    "yingqi": [],
    "result_text": "後卦父興子孫同動應他日之雨晴之時也",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS126",
@@ -6655,7 +6809,8 @@
    ],
    "result_text": "果至卯年立業成家",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS127",
@@ -6705,7 +6860,8 @@
    "yingqi": [],
    "result_text": "後因貧困；果然顚倒昏迷",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS128",
@@ -6755,7 +6911,8 @@
    "yingqi": [],
    "result_text": "後至巳年因開鉛礦；後卦六沖；後家業凋零",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS129",
@@ -6805,7 +6962,8 @@
    "yingqi": [],
    "result_text": "後果于寅年醫好富翁",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS130",
@@ -6854,12 +7012,11 @@
    "target": "妻財",
    "outcome": "凶",
    "yongshen_zhi": null,
-   "yingqi": [
-    "丑年"
-   ],
+   "yingqi": [],
    "result_text": "後從當夫頭死于丑年；果屢驗",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS131",
@@ -6905,13 +7062,14 @@
     ]
    ],
    "question": "占終身財福得未濟之睽",
-   "target": null,
-   "outcome": null,
+   "target": "妻財",
+   "outcome": "凶",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "後因叔父作衙門命之貼；果屢驗",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS132",
@@ -6963,7 +7121,8 @@
    "yingqi": [],
    "result_text": "後聞此人遊川广塡黔；後之人；果有驗",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS133",
@@ -7015,7 +7174,8 @@
    "yingqi": [],
    "result_text": "果此人目不識丁",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS134",
@@ -7065,7 +7225,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS135",
@@ -7117,7 +7278,8 @@
    "yingqi": [],
    "result_text": "果于午年保舉",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS136",
@@ -7167,7 +7329,8 @@
    "yingqi": [],
    "result_text": "後屢見逢顯貴聘之；後隨表弟升任云南",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS137",
@@ -7222,7 +7385,8 @@
    ],
    "result_text": "果至巳月而生惡瘡",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS138",
@@ -7268,13 +7432,14 @@
     ]
    ],
    "question": "占終身功名有無得地火明夷變豐卦",
-   "target": null,
-   "outcome": null,
+   "target": "官鬼",
+   "outcome": "吉",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS139",
@@ -7318,13 +7483,14 @@
     ]
    ],
    "question": "占終身功名有無得蠱卦",
-   "target": null,
-   "outcome": null,
+   "target": "官鬼",
+   "outcome": "吉",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "後此人亦未食糧",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS140",
@@ -7374,7 +7540,8 @@
    "yingqi": [],
    "result_text": "後從戌二十餘載",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS141",
@@ -7424,7 +7591,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS142",
@@ -7474,7 +7642,8 @@
    "yingqi": [],
    "result_text": "後至七旬之一相遇而曰：向年所占；後再占",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS143",
@@ -7527,7 +7696,8 @@
    "yingqi": [],
    "result_text": "果終于未年七月",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS144",
@@ -7580,7 +7750,8 @@
    "yingqi": [],
    "result_text": "後卒于戌年",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS145",
@@ -7632,7 +7803,8 @@
    "yingqi": [],
    "result_text": "後去到江傍",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS146",
@@ -7681,12 +7853,11 @@
    "target": "世",
    "outcome": "凶",
    "yongshen_zhi": null,
-   "yingqi": [
-    "亥日"
-   ],
+   "yingqi": [],
    "result_text": "果于正月亥日宿于妾房",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS147",
@@ -7739,7 +7910,8 @@
    "yingqi": [],
    "result_text": "果于九月成癆",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS148",
@@ -7789,7 +7961,8 @@
    "yingqi": [],
    "result_text": "後卦子孫持世",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS149",
@@ -7839,7 +8012,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS150",
@@ -7893,7 +8067,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS151",
@@ -7940,13 +8115,14 @@
     ]
    ],
    "question": "占僕人為禍否得解之震",
-   "target": null,
-   "outcome": null,
+   "target": "世",
+   "outcome": "凶",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "果依語而行",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS152",
@@ -7993,13 +8169,14 @@
     ]
    ],
    "question": "占防流兵得臨之暌卦",
-   "target": null,
-   "outcome": null,
+   "target": "世",
+   "outcome": "吉",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "後此人屢次遇兵變",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS153",
@@ -8051,7 +8228,8 @@
    "yingqi": [],
    "result_text": "後果從北來；果如何",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS154",
@@ -8104,7 +8282,8 @@
    "yingqi": [],
    "result_text": "果議絞罪；後蒙駁番撥活罪",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS155",
@@ -8154,7 +8333,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS156",
@@ -8203,10 +8383,13 @@
    "target": "父母",
    "outcome": "凶",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "子日"
+   ],
    "result_text": "果終于本年冬至日",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS157",
@@ -8256,7 +8439,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS158",
@@ -8303,13 +8487,14 @@
     ]
    ],
    "question": "占得歸妹變復卦",
-   "target": null,
-   "outcome": null,
+   "target": "父母",
+   "outcome": "吉",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS159",
@@ -8361,7 +8546,8 @@
    "yingqi": [],
    "result_text": "果有金弟屬猴；後一年又登申榜",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS160",
@@ -8413,7 +8599,8 @@
    "yingqi": [],
    "result_text": "果一位舍弟已得顚狂之癥；後果異母有出；後事爾志",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS161",
@@ -8457,13 +8644,14 @@
     ]
    ],
    "question": "占夫婦將來和俁否？得泰卦",
-   "target": null,
-   "outcome": null,
+   "target": "妻財",
+   "outcome": "凶",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "後竟生離",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS162",
@@ -8516,7 +8704,8 @@
    "yingqi": [],
    "result_text": "果此公美妾十餘",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS163",
@@ -8566,7 +8755,8 @@
    "yingqi": [],
    "result_text": "果于次年六月父子相逢",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS164",
@@ -8619,7 +8809,8 @@
    "yingqi": [],
    "result_text": "後章有：若卜嬰兒之造化",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS165",
@@ -8671,7 +8862,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS166",
@@ -8723,7 +8915,8 @@
    "yingqi": [],
    "result_text": "後因師責",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS167",
@@ -8775,7 +8968,8 @@
    "yingqi": [],
    "result_text": "後勝于前；果取案首",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS168",
@@ -8828,7 +9022,8 @@
    "yingqi": [],
    "result_text": "後果取超等補稟",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS169",
@@ -8878,7 +9073,8 @@
    "yingqi": [],
    "result_text": "後悔之",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS170",
@@ -8932,7 +9128,8 @@
    "yingqi": [],
    "result_text": "果得及第",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS171",
@@ -8982,7 +9179,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS172",
@@ -9035,7 +9233,8 @@
    "yingqi": [],
    "result_text": "後果另選別人",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS173",
@@ -9085,7 +9284,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "野鶴自記失手例：斷不得，實得差而中途亡；不列入評分",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS174",
@@ -9139,7 +9339,8 @@
    ],
    "result_text": "果得升于亥月",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS175",
@@ -9189,10 +9390,13 @@
    "target": "官鬼",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "子月"
+   ],
    "result_text": "果得升于冬月",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS176",
@@ -9244,7 +9448,8 @@
    "yingqi": [],
    "result_text": "果得眞定",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS177",
@@ -9297,7 +9502,8 @@
    "yingqi": [],
    "result_text": "後竟納之",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS178",
@@ -9349,7 +9555,8 @@
    "yingqi": [],
    "result_text": "後此人上書；果有興利除害",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS179",
@@ -9401,7 +9608,8 @@
    "yingqi": [],
    "result_text": "果蒙上臺題保",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS180",
@@ -9454,7 +9662,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS181",
@@ -9504,7 +9713,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS182",
@@ -9555,10 +9765,13 @@
    "target": "世",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "辰年"
+   ],
    "result_text": "果得首唱傳臚",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS183",
@@ -9615,7 +9828,8 @@
    ],
    "result_text": "果應于寅年；後終于未年",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS184",
@@ -9665,7 +9879,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS185",
@@ -9712,10 +9927,13 @@
    "target": "妻財",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "辰日"
+   ],
    "result_text": "果得財",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS186",
@@ -9767,10 +9985,13 @@
    "target": "妻財",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "午日"
+   ],
    "result_text": "果于次日送來",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS187",
@@ -9817,10 +10038,13 @@
    "target": "世",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "亥日"
+   ],
    "result_text": "果于出空之日見官",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS188",
@@ -9870,7 +10094,8 @@
    "yingqi": [],
    "result_text": "後來存貨堆積四年",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS189",
@@ -9919,10 +10144,13 @@
    "target": "妻財",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "寅月"
+   ],
    "result_text": "果于正月勃然大長",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS190",
@@ -9972,7 +10200,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS191",
@@ -10022,7 +10251,8 @@
    "yingqi": [],
    "result_text": "後果中間人作獘；果然得了厚利",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS192",
@@ -10072,7 +10302,8 @@
    "yingqi": [],
    "result_text": "後此人買攢香翠毛而歸",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS193",
@@ -10127,7 +10358,8 @@
    ],
    "result_text": "果于辰日",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS194",
@@ -10179,7 +10411,8 @@
    "yingqi": [],
    "result_text": "後果買馬七十餘匹",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS195",
@@ -10231,7 +10464,8 @@
    "yingqi": [],
    "result_text": "果于早勝",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS196",
@@ -10280,10 +10514,13 @@
    "target": "妻財",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "戌日"
+   ],
    "result_text": "果于次日巳時允婚",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS197",
@@ -10337,7 +10574,8 @@
    "yingqi": [],
    "result_text": "後果聘定于四月；後終還成",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS198",
@@ -10384,13 +10622,14 @@
     ]
    ],
    "question": "占夫妻不和將來如好否？得需之大過卦",
-   "target": null,
-   "outcome": null,
+   "target": "官鬼",
+   "outcome": "凶",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "後如何；果于次年寅月休妻；後必成",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS199",
@@ -10440,7 +10679,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS200",
@@ -10492,7 +10732,8 @@
    "yingqi": [],
    "result_text": "後為大；後施濟貧寒",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS201",
@@ -10538,13 +10779,14 @@
     ]
    ],
    "question": "占孕男女得小過之豫卦",
-   "target": null,
-   "outcome": null,
+   "target": "妻財",
+   "outcome": "吉",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "後須宜分占；果于壬申日生女",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS202",
@@ -10596,7 +10838,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS203",
@@ -10642,13 +10885,14 @@
     ]
    ],
    "question": "占母在外何時來得旅之艮卦",
-   "target": null,
-   "outcome": null,
+   "target": "父母",
+   "outcome": "凶",
    "yongshen_zhi": null,
    "yingqi": [],
    "result_text": "後果在外平安",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS204",
@@ -10694,13 +10938,16 @@
     ]
    ],
    "question": "占僕人何日回得革之夬卦",
-   "target": null,
-   "outcome": null,
+   "target": "妻財",
+   "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "巳日"
+   ],
    "result_text": "果于巳日到",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS205",
@@ -10746,13 +10993,16 @@
     ]
    ],
    "question": "占伯何日來得屯之隨卦",
-   "target": null,
-   "outcome": null,
+   "target": "父母",
+   "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "亥月"
+   ],
    "result_text": "後于亥月方到",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "fresh"
   },
   {
    "id": "ZS206",
@@ -10799,10 +11049,13 @@
    "target": "父母",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "午日"
+   ],
    "result_text": "果于申時到",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS207",
@@ -10857,7 +11110,8 @@
    ],
    "result_text": "果于巳日到",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS208",
@@ -10909,7 +11163,8 @@
    "yingqi": [],
    "result_text": "果泊五日",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS209",
@@ -10961,7 +11216,8 @@
    "yingqi": [],
    "result_text": "果在出空之日而愈",
    "note": "",
-   "illness": "近病"
+   "illness": "近病",
+   "split": "dev"
   },
   {
    "id": "ZS210",
@@ -11008,10 +11264,13 @@
    "target": "子孫",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "子日"
+   ],
    "result_text": "果于本日愈；後還發",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "holdout"
   },
   {
    "id": "ZS211",
@@ -11064,7 +11323,8 @@
    "yingqi": [],
    "result_text": "果于子時退災；後頃刻得病",
    "note": "",
-   "illness": "近病"
+   "illness": "近病",
+   "split": null
   },
   {
    "id": "ZS212",
@@ -11117,7 +11377,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS213",
@@ -11166,10 +11427,13 @@
    "target": "父母",
    "outcome": "吉",
    "yongshen_zhi": null,
-   "yingqi": [],
+   "yingqi": [
+    "辰日"
+   ],
    "result_text": "果于雞鳴蘇醒",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": "dev"
   },
   {
    "id": "ZS214",
@@ -11222,7 +11486,8 @@
    "yingqi": [],
    "result_text": "後賢不可不知",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS215",
@@ -11274,7 +11539,8 @@
    "yingqi": [],
    "result_text": "後長遠興隆",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS216",
@@ -11324,7 +11590,8 @@
    "yingqi": [],
    "result_text": "後照此行",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS217",
@@ -11376,7 +11643,8 @@
    "yingqi": [],
    "result_text": "後有一株大樹；後如何得歸妹之豫卦",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS218",
@@ -11426,7 +11694,8 @@
    "yingqi": [],
    "result_text": "後開溝見許多屍體白骨；後何如得噬嗑之無妄",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS219",
@@ -11479,7 +11748,8 @@
    "yingqi": [],
    "result_text": "後竟葬之；後竟大發",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS220",
@@ -11532,7 +11802,8 @@
    "yingqi": [],
    "result_text": "後竟葬之",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS221",
@@ -11582,7 +11853,8 @@
    "yingqi": [],
    "result_text": "果一一無錯",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS222",
@@ -11634,7 +11906,8 @@
    "yingqi": [],
    "result_text": "",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS223",
@@ -11684,7 +11957,8 @@
    "yingqi": [],
    "result_text": "果得原錢于紅花之下",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   },
   {
    "id": "ZS224",
@@ -11736,7 +12010,8 @@
    "yingqi": [],
    "result_text": "後仍附葬；後不斷曰：腰疼欲死；果于安墳而愈",
    "note": "",
-   "illness": null
+   "illness": null,
+   "split": null
   }
  ]
 }

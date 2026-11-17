@@ -13,8 +13,8 @@
   3. 吉凶一致率  —— 引擎「用神綜合」方向 vs 書中結果
   4. 應期命中率  —— 書中應驗之日的地支，是否在引擎的應期候選之內
 
-開發組／保留組：有標註的卦例依編號分兩半。改規則時只看奇數編號（開發組）的錯例，
-偶數編號（保留組）只在最後看數字，用來檢查規則是否只是在背開發組的答案。
+分組（gold 的 split 欄）：dev＝開發組，改規則時只看它的錯例；holdout＝保留組；
+fresh＝後來新標、從未用來調規則的保留組。保留組只在最後看數字，用來檢查規則是否只是在背開發組的答案。
 `--miss` 預設只列開發組；`--miss-all` 才列全部（看了保留組的錯例，它就不再是保留組）。
 
 注意：這量的是「與原典斷法的一致程度」，不是現實世界的準確率。
@@ -44,8 +44,7 @@ def direction(verdict) -> str:
     return verdict.get("direction", "未定")
 
 
-def is_dev(case_id: str) -> bool:
-    return int(case_id[2:]) % 2 == 1
+GROUPS = {"dev": "開發組", "holdout": "保留組", "fresh": "新保留組"}
 
 
 def run_liuyao(path: str):
@@ -53,7 +52,7 @@ def run_liuyao(path: str):
     stat = {"n": len(cases), "layout_ok": 0, "ys_n": 0, "ys_ok": 0,
             "v_n": 0, "同向": 0, "相反": 0, "未定": 0, "無判斷": 0,
             "yq_n": 0, "yq_hit": 0, "yq_cands": 0,
-            "dev_n": 0, "dev_ok": 0, "hold_n": 0, "hold_ok": 0, "all_ji": 0}
+            "all_ji": 0, **{f"{g}_{k}": 0 for g in GROUPS for k in ("n", "ok", "ji")}}
     miss = []
     for c in cases:
         h = nj.annotate(c["binary"], c["changing"], c["day"], c["month"])
@@ -73,11 +72,12 @@ def run_liuyao(path: str):
         stat["all_ji"] += c["outcome"] == "吉"
         key = d if d in ("未定", "無判斷") else ("同向" if d == c["outcome"] else "相反")
         stat[key] += 1
-        grp = "dev" if is_dev(c["id"]) else "hold"
+        grp = c.get("split") or "dev"
         stat[grp + "_n"] += 1
         stat[grp + "_ok"] += key == "同向"
+        stat[grp + "_ji"] += c["outcome"] == "吉"
         if key != "同向":
-            miss.append(f'{"開" if grp == "dev" else "保"} {c["id"]} {c["month"]}月{c["day"]}日 {c["hex"]}'
+            miss.append(f'{GROUPS[grp][0]} {c["id"]} {c["month"]}月{c["day"]}日 {c["hex"]}'
                         f'{"之" + c["bian"] if c["bian"] else ""}｜{c["question"][:22]}｜書：{c["outcome"]}'
                         f'（{c["result_text"][:24]}）｜引擎：{d}〔{(v or {}).get("rule", "")}〕')
         days = [z[0] for z in c.get("yingqi", []) if z.endswith("日")]
@@ -115,8 +115,8 @@ def main(argv):
     print(f"  裝卦一致率   {pct(ly['layout_ok'], ly['n'])}")
     print(f"  用神取對率   {pct(ly['ys_ok'], ly['ys_n'])}　（書中明寫用神地支者）")
     print(f"  吉凶一致率   {pct(ly['同向'], ly['v_n'])}　相反 {ly['相反']}・未定 {ly['未定']}・無判斷 {ly['無判斷']}")
-    print(f"    開發組 {pct(ly['dev_ok'], ly['dev_n'])}　保留組 {pct(ly['hold_ok'], ly['hold_n'])}　"
-          f"（對照：一律猜吉 {pct(ly['all_ji'], ly['v_n'])}）")
+    for g, name in GROUPS.items():
+        print(f"    {name} {pct(ly[g + '_ok'], ly[g + '_n'])}　（一律猜吉 {pct(ly[g + '_ji'], ly[g + '_n'])}）")
     avg = ly["yq_cands"] / ly["yq_n"] if ly["yq_n"] else 0
     print(f"  應期命中率   {pct(ly['yq_hit'], ly['yq_n'])}　（平均每卦列 {avg:.1f} 個候選日支；隨機猜中約 {100 * avg / 12:.0f}%）")
     print("══ 梅花：原書占例 ══")
@@ -128,7 +128,7 @@ def main(argv):
         print("\n── 梅花未同向 ──")
         print("\n".join("  " + m for m in mh_miss))
     summary = {"layout_ok": ly["layout_ok"], "ys_ok": ly["ys_ok"], "verdict_ok": ly["同向"],
-               "verdict_wrong": ly["相反"], "holdout_ok": ly["hold_ok"],
+               "verdict_wrong": ly["相反"], "holdout_ok": ly["holdout_ok"], "fresh_ok": ly["fresh_ok"],
                "yq_hit": ly["yq_hit"], "meihua_ok": mhs["同向"]}
     base_path = os.path.join(HERE, "backtest_baseline.json")
     if "--write-baseline" in argv:
