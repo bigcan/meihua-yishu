@@ -178,6 +178,9 @@ AMBIGUOUS_ASKS = {
     "感情": "同「婚姻」：男問用 女友（妻財）、女問用 男友（官鬼）。",
     "健康": "問自己身體用「自身」（世爻，兼看官鬼）；問家人依其六親（父母／子女…）；問病情本身用「疾病」。",
     "工作": None,
+    "疾病": "占病以病人為用神：自占用「自身」（世爻），代占用其六親（父母／子女／丈夫／妻子／兄弟）；"
+           "並加 --illness 近病 或 久病（兩者逢沖逢空斷法相反）。官鬼是病症本身，旺動克用神為病重，不作用神。",
+    "病況": "同「疾病」：以病人為用神（自身或其六親），並加 --illness 近病／久病。",
 }
 
 YONGSHEN_NOTES = {
@@ -244,6 +247,8 @@ class YaoNajia:
     # 旺衰
     month_rel: str = ""          # 臨月/月扶/月生/月克/月破/月合/洩/耗
     day_rel: str = ""            # 臨日/日扶/日生/日克/日沖/日合/日墓/…
+    month_score: int = 0         # 月建對本爻的分數（>0 得令、<0 失令）
+    day_score: int = 0           # 日辰對本爻的分數
     strength: int = 0            # 綜合力量分
     state: str = ""              # 旺相/平/休囚
     is_void: bool = False        # 逢旬空（不論真假）
@@ -452,7 +457,7 @@ def annotate(
 
     # 旺衰
     for y in yaos:
-        score = 0
+        score = ms = ds = 0
         if month_zhi:
             y.month_rel, ms = _month_relation(y.wuxing, y.zhi, month_zhi)
             score += ms
@@ -462,7 +467,15 @@ def annotate(
             y.day_rel, ds, chong, mu = _day_relation(y.wuxing, y.zhi, dz)
             y.is_ri_chong, y.is_ri_mu = chong, mu
             y.is_ri_he = LIU_HE[y.zhi] == dz
+            if month_zhi and ms > 0:
+                # 《增刪卜易・生旺墓絕章》覺子曰：金雖長生在巳，須金爻旺相方謂長生；休囚則論克。
+                if y.wuxing == "金" and dz == "巳" and not chong:
+                    y.day_rel, ds = "日辰長生（金旺相而逢巳）", 2
+                # 隨墓助傷章：入墓者「旺相者非真」。
+                elif mu:
+                    y.day_rel, ds = "入日墓（旺相，不為真墓）", 0
             score += ds
+        y.month_score, y.day_score = ms, ds
         y.strength = score
         y.state = _state_label(score) if (month_zhi or day_ganzhi) else ""
 
@@ -486,21 +499,36 @@ def annotate(
         # 旬空真假
         if y.zhi in h.void_zhis:
             y.is_void = True
+            # 《增刪卜易・旬空章》：「旺不為空，動不為空，有日建動爻生扶者不為空……
+            # 月破為空，有氣不動亦為空，真空為空。真空即春土、夏金、秋木、三冬逢火。」
+            # 所以「真空」只指被月令所克（或月破）而又無日辰生扶的靜空；
+            # 有氣的靜空只是目下為空，出旬有用。
             reasons = []
             if y.is_changing:
                 reasons.append("動")
-            if y.state == "旺相":
+            if ms > 0:
                 reasons.append("旺")
+            if y.day_rel.startswith(("臨日辰", "日扶", "日生", "日辰長生")):
+                reasons.append("日辰生扶")
             if y.is_ri_chong:
                 reasons.append("沖空則實")
-            if reasons:
-                y.void_kind = f"不為真空（{'・'.join(reasons)}）：暫時未到，出旬或沖空時有力"
-            elif y.is_yue_po:
+            if y.is_yue_po and not y.is_changing:
+                # 「月破為空」：靜爻月破而又旬空，雖有日辰生扶亦生之不起
                 y.void_kind = "真空又月破：此爻無用"
+            elif reasons:
+                y.void_kind = f"不為真空（{'・'.join(reasons)}）：暫時未到，出旬或沖空時有力"
+            elif y.month_rel.startswith("月克"):
+                y.void_kind = "真空（被月令所克之靜空）：到底落空，除非出旬後得生扶"
             else:
-                y.void_kind = "真空（休囚靜空）：到底落空，除非出旬後得生扶"
+                y.void_kind = "旬空（有氣而靜）：目下為空，出旬或沖空之日有用"
 
         _change_notes(y, month_zhi, h.void_zhis)
+
+    # 旬空章：「有……動爻生扶者不為空」——真空之爻若得明動、暗動之爻相生，改判不為真空。
+    for y in yaos:
+        if y.void_kind.startswith("真空（"):
+            if any(o.active and o is not y and wx_relation(o.wuxing, y.wuxing) == "生" for o in yaos):
+                y.void_kind = "不為真空（動爻生扶）：暫時未到，出旬或沖空時有力"
 
     _detect_gua_patterns(h)
     _detect_sanhe(h)
@@ -551,6 +579,11 @@ def _detect_sanhe(h: AnnotatedHexagram) -> None:
             sources[h.month_zhi].append("月")
         if not all(sources.values()):
             continue
+        # 三合章：局中一爻空破，須待填實之月日方成局（虛一待用同理）。月破之支暫不成局。
+        if h.month_zhi and any(LIU_CHONG[z] == h.month_zhi for z in combo):
+            po = next(z for z in combo if LIU_CHONG[z] == h.month_zhi)
+            h.notes.append(f"三合{wx}局未成：{po}值月破，待填實（{po}月／日）或合破之時方成局")
+            continue
         # 每支取一個來源，至少兩支由「不同的」動爻（或其變爻）提供
         active_pos = [{int(s_.split("爻")[0]) for s_ in sources[z] if "動" in s_ or "變" in s_}
                       for z in combo]
@@ -589,11 +622,16 @@ def _effects_on(h: AnnotatedHexagram, target: YaoNajia) -> List[Tuple[str, int]]
     """
     in_ju = {p for _, ps in h.sanhe for p in ps}
     out: List[Tuple[str, int]] = []
+    on_day = bool(h.day_ganzhi) and target.zhi == h.day_ganzhi[1]
     for y in h.yaos:
         if y is target or not y.active:
             continue
         rel = wx_relation(y.wuxing, target.wuxing)
         if rel not in ("生", "克"):
+            continue
+        if rel == "克" and on_day:
+            # 日辰章：「諸爻不能傷日月」「爻傷日月，徒受其名」——用神即日辰所臨之爻，他爻克之無力。
+            out.append((f"{y.position}爻{y.liuqin}{y.zhi}克用神，但用神臨日辰，爻不能傷日（徒受其名）", 0))
             continue
         tag = "動" if y.is_changing else "暗動"
         base = 2 if rel == "生" else -2
@@ -614,8 +652,12 @@ def _effects_on(h: AnnotatedHexagram, target: YaoNajia) -> List[Tuple[str, int]]
     return out
 
 
-def find_yongshen(h: AnnotatedHexagram, question_type: str) -> Dict:
-    """依問事類型定用神，並整理原神／忌神／仇神與動爻作用。"""
+def find_yongshen(h: AnnotatedHexagram, question_type: str,
+                  context: Optional[Dict] = None) -> Dict:
+    """依問事類型定用神，並整理原神／忌神／仇神與動爻作用。
+
+    context 可帶 {"illness": "近病" 或 "久病"}：占病時近病、久病斷法相反（疾病章），不給就不套用。
+    """
     if AMBIGUOUS_ASKS.get(question_type):
         return {"error": f"「{question_type}」需先釐清：{AMBIGUOUS_ASKS[question_type]}"}
     if question_type not in YONGSHEN_MAP:
@@ -646,9 +688,11 @@ def find_yongshen(h: AnnotatedHexagram, question_type: str) -> Dict:
     result["yuanshen"] = (yuan, [y for y in h.yaos if y.liuqin == yuan])
     result["jishen"] = (ji, [y for y in h.yaos if y.liuqin == ji])
     result["choushen"] = (chou, [y for y in h.yaos if y.liuqin == chou])
+    result.setdefault("bian_yongshen", [])
     if result.get("primary"):
         result["effects"] = _effects_on(h, result["primary"])
-        result["verdict"] = _verdict(h, result)
+    if result.get("primary") or (h.month_zhi and h.day_ganzhi):
+        result["verdict"] = _verdict(h, result, context or {})
     return result
 
 
@@ -664,6 +708,7 @@ def _find_fushen(h: AnnotatedHexagram, target_liuqin: str) -> Optional[Dict]:
                     "克": "飛來克伏（伏神受制，難出）", "洩": "伏去生飛（洩氣）",
                     "耗": "伏去克飛（伏神尚能出）"}[rel]
         state = ""
+        ms = ds = 0
         if h.month_zhi and h.day_ganzhi:
             ml, ms = _month_relation(wx, gz[1], h.month_zhi)
             dl, ds, _, _ = _day_relation(wx, gz[1], h.day_ganzhi[1])
@@ -671,62 +716,219 @@ def _find_fushen(h: AnnotatedHexagram, target_liuqin: str) -> Optional[Dict]:
             if gz[1] in h.void_zhis:
                 state += "、旬空"
         return {"position": i + 1, "ganzhi": gz, "wuxing": wx, "liuqin": target_liuqin,
+                "ms": ms, "ds": ds, "void": gz[1] in h.void_zhis,
+                "yue_po": bool(h.month_zhi) and LIU_CHONG[gz[1]] == h.month_zhi,
+                "fei": fei, "fei_wx_rel": rel,
                 "fei_yao": f"{fei.ganzhi()}（{fei.liuqin}）", "fei_rel": fei_note, "state": state,
                 "note": "伏神旺相、得日月生扶或飛神生之，可提拔出用；休囚又被飛神克，所求難得。"}
     return None
 
 
-def _verdict(h: AnnotatedHexagram, r: Dict) -> Dict:
-    """把用神狀態與動爻作用整理成方向性結論（供解讀起點，非機械判決）。"""
-    y: YaoNajia = r["primary"]
+def _bian_has_force(h: AnnotatedHexagram, y: YaoNajia) -> bool:
+    """變爻回頭克本爻時是否有力。
+
+    《增刪卜易》占病得謙之蹇：「雖化戌土之克，春令土衰，卯月克制，有殺無妨」——
+    變爻被月令所克（或月破）而又不得日辰生扶者，回頭克無力。
+    """
+    z, wx = y.bian_zhi, y.bian_wuxing
+    if h.day_ganzhi:
+        dz = h.day_ganzhi[1]
+        if z == dz or wx_relation(ZHI_WUXING[dz], wx) in ("扶", "生"):
+            return True
+    if h.month_zhi:
+        if z == h.month_zhi:
+            return True
+        if LIU_CHONG[z] == h.month_zhi or wx_relation(ZHI_WUXING[h.month_zhi], wx) == "克":
+            return False
+    return True
+
+
+def _fushen_verdict(fs: Dict) -> Tuple[int, str]:
+    """伏神有用無用（《增刪卜易・飛伏神章》「伏神有用者有六」及無用諸條）。"""
+    fei: YaoNajia = fs["fei"]
+    ms, ds = fs["ms"], fs["ds"]
+    name = f"伏神{fs['ganzhi']}{fs['wuxing']}"
+    if fs["yue_po"]:
+        return -3, f"{name}值月破：無用，所求難得"
+    if ms < 0 and ds < 0:
+        return -3, f"{name}休囚又被日月克：無用"
+    if fs["fei_wx_rel"] == "克" and fei.strength >= 2:
+        return -3, f"{name}被旺相之飛神{fei.ganzhi()}克：無用"
+    if fs["void"] and ms <= 0 and ds <= 0:
+        return -3, f"{name}休囚而旬空：無用"
+    if ms > 0 or ds > 0:
+        return 2, f"{name}得日月生扶（旺相）：有用，待出現之日（值日、沖飛、出空）"
+    if fs["fei_wx_rel"] == "生":
+        return 2, f"{name}得飛神{fei.ganzhi()}相生：有用"
+    if fei.is_void or fei.is_yue_po or fei.strength < 0:
+        return 2, f"飛神{fei.ganzhi()}空破休囚，{name}易於引拔：有用"
+    return 0, f"{name}不旺不衰，飛伏生克不明"
+
+
+def _verdict(h: AnnotatedHexagram, r: Dict, context: Optional[Dict] = None) -> Dict:
+    """斷語方向：先走有原典依據的決定性規則，再以生克多寡計分。
+
+    規則次序（出處皆《增刪卜易》，對應卦例見 tests/gold_zengshan.json）：
+      1. 占病近久之別（疾病章）
+      2. 世爻動而化出用神（如占財得未濟之鼎「忌臨世位化酉財，即于酉日得財」）
+      3. 用神不上卦 → 動爻化出用神生世，否則論伏神有用無用（飛伏神章）
+      4. 用神無根（月日俱傷）：「用神無根，元神有力亦難生」
+      5. 用神化回頭克而變爻有力，且用神不臨日月
+      6. 其餘以「克少生多者吉，克多生少者凶」計分
+    方向：分數 ≥ +1 為吉，≤ −1 為凶，0 為未定。
+    """
+    context = context or {}
+    y: Optional[YaoNajia] = r.get("primary")
+    shi = h.shi()
+    target = r["target_liuqin"]
+    reasons: List[str] = []
+
+    def done(score: int, rule: str) -> Dict:
+        if score >= 4:
+            label = "有利：用神有力，所問之事可成"
+        elif score >= 1:
+            label = "小利：事可成，但需努力或待時"
+        elif score == 0:
+            label = "未定：生克相當，宜再占合參"
+        elif score >= -3:
+            label = "不利：用神受制，事多阻礙"
+        else:
+            label = "大不利：用神無氣又受克，此事難成"
+        direction = "吉" if score >= 1 else ("凶" if score <= -1 else "未定")
+        return {"score": score, "label": label, "reasons": reasons, "direction": direction, "rule": rule}
+
+    if y:
+        reasons.append(f"用神 {y.position}爻{y.liuqin}{y.ganzhi()}：{y.month_rel or '月建未知'}、"
+                       f"{y.day_rel or '日辰未知'} → {y.state or '旺衰未知'}")
+
+    # 1. 占病：近病逢沖逢空即愈，久病逢沖逢空難治（疾病章：
+    #    「久病者，卦逢六沖、卦變六沖，不論用神之衰旺，乃不治之疾也；近病逢之，不藥而愈。」）
+    illness = context.get("illness")
+    if illness in ("近病", "久病"):
+        marks = []
+        if h.hex_num in LIUCHONG_GUA:
+            marks.append("卦逢六沖")
+        if h.bian_hex_num in LIUCHONG_GUA:
+            marks.append("卦變六沖")
+        if y is not None:
+            if y.is_void:
+                marks.append("用神旬空")
+            if y.is_changing and y.bian_zhi in h.void_zhis:
+                marks.append("用神化空")
+            if y.is_ri_chong:
+                marks.append("用神逢日沖")
+        if marks:
+            if illness == "近病":
+                reasons.append(f"近病而{'、'.join(marks)}：近病逢沖逢空即愈")
+                return done(4, "近病逢沖逢空")
+            reasons.append(f"久病而{'、'.join(marks)}：久病逢沖逢空難治")
+            return done(-5, "久病逢沖逢空")
+
+    # 2. 世爻動而化出用神（變爻不值月破，亦非回頭克世）
+    if shi.is_changing and shi.bian_liuqin == target and shi.liuqin != target:
+        po = bool(h.month_zhi) and LIU_CHONG[shi.bian_zhi] == h.month_zhi
+        if not po and not any("回頭克" in n for n in shi.change_notes):
+            extra = "（變爻旬空，出空之日應）" if shi.bian_zhi in h.void_zhis else ""
+            reasons.append(f"世爻{shi.zhi}動而化出用神{shi.bian_zhi}{shi.bian_wuxing}{target}{extra}：所求自來就我")
+            return done(4, "世化出用神")
+
+    # 3. 用神不上卦
+    if y is None:
+        movers = [m for m in r.get("bian_yongshen", [])
+                  if not (h.month_zhi and LIU_CHONG[m.bian_zhi] == h.month_zhi)
+                  and wx_relation(m.wuxing, shi.wuxing) in ("生", "扶")]
+        if movers:
+            m = movers[0]
+            reasons.append(f"用神不上卦，但{m.position}爻{m.liuqin}{m.zhi}動而化出{m.bian_zhi}{target}並生扶世爻（神兆機於動）")
+            return done(2, "動爻化出用神生世")
+        fs = r.get("fushen")
+        if not fs:
+            reasons.append("用神不上卦，本宮亦無此六親")
+            return done(-2, "用神不現")
+        score, why = _fushen_verdict(fs)
+        reasons.append(f"用神不上卦：{why}")
+        return done(score, "伏神")
+
+    # 靜而空破之用神，另有動爻生世且化出用神者，以動爻為主（占財得兌之解：「神兆機于動」）
+    if not y.is_changing and (y.is_void or y.is_yue_po):
+        for m in r.get("bian_yongshen", []):
+            if m is y or (h.month_zhi and LIU_CHONG[m.bian_zhi] == h.month_zhi):
+                continue
+            if wx_relation(m.wuxing, shi.wuxing) == "生":
+                reasons.append(f"用神靜而空破，但{m.position}爻{m.liuqin}{m.zhi}動而生世、化出{m.bian_zhi}{target}"
+                               f"（神兆機於動）：以動爻為主，應期看變爻出空、值日")
+                return done(2, "動爻生世化出用神")
+
+    on_sun_moon = (h.month_zhi == y.zhi) or (bool(h.day_ganzhi) and h.day_ganzhi[1] == y.zhi)
+    huitou_ke = y.is_changing and any("回頭克" in n for n in y.change_notes)
+    huitou_sheng = y.is_changing and any(("回頭生" in n or "進神" in n) for n in y.change_notes)
+
+    # 4. 用神無根：月建、日辰俱傷（或月破而日辰不扶），又非化回頭生
+    rootless = (y.month_score < 0 and y.day_score < 0) or (y.is_yue_po and y.day_score <= 0)
+    if h.month_zhi and h.day_ganzhi and rootless and not huitou_sheng:
+        reasons.append("用神無根：月建、日辰俱傷而無生扶——「用神無根，元神有力亦難生」")
+        return done(-5, "用神無根")
+
+    # 5. 用神化回頭克：變爻有力且用神不臨日月者凶；臨日月者「逢傷亦傷，卻有待時之用」，入計分
+    force = huitou_ke and _bian_has_force(h, y)
+    if force and not on_sun_moon:
+        reasons.append(f"用神化{y.bian_zhi}{y.bian_wuxing}回頭克，變爻有力")
+        return done(-4, "用神化回頭克")
+
+    # 6. 計分：克少生多者吉，克多生少者凶
     score = y.strength
-    reasons = [f"用神 {y.position}爻{y.liuqin}{y.ganzhi()}：{y.month_rel or '月建未知'}、{y.day_rel or '日辰未知'} → {y.state or '旺衰未知'}"]
     if y.void_kind.startswith("真空"):
         score -= 3
         reasons.append("用神真空")
+    elif y.is_void:
+        reasons.append("用神旬空而有氣：目下未到，出旬或沖空之日應")
     if y.is_yue_po:
         reasons.append("用神月破（出月或填實之時方有轉機）")
     for n in y.change_notes:
+        if "回頭克" in n:
+            if force:
+                score -= 2
+                reasons.append(f"用神{n}（用神臨日月，逢傷待時：沖去變爻之日方成）")
+            else:
+                reasons.append("用神化回頭克，但變爻休囚被克：有殺無妨")
+            continue
         if "回頭生" in n or "進神" in n:
             score += 2
-        if "回頭克" in n or "化破" in n or "化絕" in n:
+        elif "化破" in n or "化絕" in n:
             score -= 2
-        if "退神" in n or "化墓" in n or "化空" in n:
+        elif "退神" in n:
+            if on_sun_moon or y.month_score > 0:
+                reasons.append("用神化退神，但旺相不退")
+                continue
+            score -= 1
+        elif "化墓" in n or "化空" in n:
             score -= 1
         reasons.append(f"用神{n}")
     for e, s_ in r.get("effects", []):
         score += s_
         reasons.append(e)
-    # 貪生忘克：忌神動而原神亦動，忌生原、原生用，反成助力
-    yuan_active = [x for x in r["yuanshen"][1] if x.active]
-    ji_active = [x for x in r["jishen"][1] if x.active]
-    yuan_ok = [x for x in yuan_active if not (x.is_yue_po or x.void_kind.startswith("真空")
-                                              or any("回頭克" in n for n in x.change_notes))]
-    if ji_active and yuan_ok:
+    # 元神忌神衰旺章：「忌神與元神同動」則忌生元、元生用，接續相生
+    yuan_ok = [x for x in r["yuanshen"][1] if x.active
+               and not (x.is_yue_po or x.void_kind.startswith("真空")
+                        or any("回頭克" in n for n in x.change_notes))]
+    if [x for x in r["jishen"][1] if x.active] and yuan_ok:
         score += 2
         reasons.append("忌神、原神同動：忌生原、原生用（貪生忘克），忌神反為助力")
-    shi = h.shi()
     if y is not shi:
+        if shi.is_yue_po and not shi.is_changing:
+            # 求官章：「世空世破、官破官空，俱不得。」世爻靜而月破，事雖有而己難得。
+            score -= 3
+            reasons.append("世爻月破：事雖有，己難得（世破不得）")
         rel = wx_relation(y.wuxing, shi.wuxing)
         if rel in ("生", "扶"):
             reasons.append(f"用神{rel}世（所求之事來就我）")
             score += 1
-        elif rel == "克" and r["target_liuqin"] in ("妻財",):
+        elif rel == "克" and target == "妻財":
             reasons.append("財克世（財來就我）")
             score += 1
         elif rel == "克":
             reasons.append("用神克世（事來逼我，或成而有壓力）")
-    if score >= 4:
-        label = "有利：用神有力，所問之事傾向可成"
-    elif score >= 1:
-        label = "小利：用神尚可，事可望而需努力或待時"
-    elif score >= -1:
-        label = "未定：吉凶參半，關鍵在應期與人為"
-    elif score >= -4:
-        label = "不利：用神受制，事多阻礙，宜調整或延後"
-    else:
-        label = "大不利：用神無氣又受克，此事難成"
-    return {"score": score, "label": label, "reasons": reasons}
+    return done(score, "生克多寡")
 
 
 # ============================================================================
@@ -864,7 +1066,7 @@ def print_yongshen(h: AnnotatedHexagram, r: Dict) -> None:
         print("\n【用神綜合】（方向性整理，解讀時以此為起點並結合問事情理）")
         for reason in v["reasons"]:
             print(f"  · {reason}")
-        print(f"  ⇒ {v['label']}（方向分 {v['score']:+}）")
+        print(f"  ⇒ {v['label']}（依據：{v.get('rule', '生克多寡')}；方向分 {v['score']:+}）")
     print("\n【應期候選】")
     for tip in suggest_yingqi(h, y):
         print(f"  • {tip}")
@@ -885,12 +1087,13 @@ HELP = """\
   --day      手動指定日干支（覆蓋 --at）
   --month    手動指定月建地支（覆蓋 --at；須以節氣為界，不是農曆月）
   --ask      問事類型（見 list-questions）
+  --illness  占病時填「近病」或「久病」：兩者逢沖逢空的斷法相反（疾病章），不填則不套用
 """
 
 
 def _parse_args(argv: List[str]) -> Dict:
     args = {"binary": None, "changing": [], "day": None, "month": None, "ask": None,
-            "at": None, "tz": cal.DEFAULT_TZ_HOURS}
+            "at": None, "tz": cal.DEFAULT_TZ_HOURS, "illness": None}
     if len(argv) < 2:
         return args
     args["binary"] = argv[1]
@@ -900,7 +1103,7 @@ def _parse_args(argv: List[str]) -> Dict:
         val = argv[i + 1] if i + 1 < len(argv) else None
         if flag == "--changing" and val is not None:
             args["changing"] = [int(x) for x in val.split(",") if x.strip()]
-        elif flag in ("--day", "--month", "--ask", "--at") and val is not None:
+        elif flag in ("--day", "--month", "--ask", "--at", "--illness") and val is not None:
             args[flag[2:]] = val
         elif flag == "--tz" and val is not None:
             args["tz"] = float(val)
@@ -949,7 +1152,7 @@ def main(argv: List[str]) -> None:
     h = annotate(b, args["changing"], day, month)
     print_hexagram(h)
     if args["ask"]:
-        print_yongshen(h, find_yongshen(h, args["ask"]))
+        print_yongshen(h, find_yongshen(h, args["ask"], {"illness": args["illness"]}))
 
 
 if __name__ == "__main__":

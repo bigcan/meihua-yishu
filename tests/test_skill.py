@@ -194,6 +194,113 @@ class TestNajia(unittest.TestCase):
         self.assertEqual(r["fushen"]["ganzhi"], "甲寅")
 
 
+class TestVerdictRules(unittest.TestCase):
+    """判斷層規則鏈：每條規則用《增刪卜易》一個卦例釘住（卦例見 tests/gold_zengshan.json）。
+
+    每個測試都應在拿掉對應規則時轉紅。
+    """
+
+    ASK = {"世": "自身", "父母": "父母", "子孫": "子女", "妻財": "求財", "官鬼": "工作"}
+
+    @classmethod
+    def setUpClass(cls):
+        import json
+        path = os.path.join(HERE, "gold_zengshan.json")
+        with open(path, encoding="utf-8") as f:
+            cls.gold = {c["id"]: c for c in json.load(f)["cases"]}
+
+    def run_case(self, cid, illness=None):
+        c = self.gold[cid]
+        h = nj.annotate(c["binary"], c["changing"], c["day"], c["month"])
+        r = nj.find_yongshen(h, self.ASK[c["target"]], {"illness": illness} if illness else None)
+        return h, r, r["verdict"]
+
+    def test_true_void_only_when_month_controls(self):
+        """旬空章：「旺不為空……真空即春土、夏金、秋木、三冬逢火。」"""
+        h, _, v = self.run_case("ZS187")     # 申月，世爻亥水得月生而旬空 → 不為真空，出空得見
+        self.assertTrue(h.shi().is_void)
+        self.assertTrue(h.shi().void_kind.startswith("不為真空"))
+        self.assertEqual(v["direction"], "吉")
+        h, _, v = self.run_case("ZS083")     # 巳月，亥水財爻月破又空：「月破為空」「生之不起」
+        self.assertTrue(h.yaos[4].void_kind.startswith("真空又月破"))
+        self.assertEqual(v["direction"], "凶")
+
+    def test_illness_recent_vs_chronic(self):
+        """疾病章：久病逢六沖不治，近病逢之不藥而愈。"""
+        _, _, v = self.run_case("ZS101", "近病")   # 占母近病得坤之剝，六沖
+        self.assertEqual((v["direction"], v["rule"]), ("吉", "近病逢沖逢空"))
+        _, _, v = self.run_case("ZS047", "久病")   # 久病得乾之夬，六沖
+        self.assertEqual((v["direction"], v["rule"]), ("凶", "久病逢沖逢空"))
+        _, _, v = self.run_case("ZS047")           # 不說病程就不套用此則
+        self.assertNotEqual(v["rule"], "久病逢沖逢空")
+
+    def test_shi_transforms_into_yongshen(self):
+        """占財得未濟之鼎：「忌臨世位化酉財，即于酉日得財。」"""
+        _, _, v = self.run_case("ZS079")
+        self.assertEqual((v["direction"], v["rule"]), ("吉", "世化出用神"))
+
+    def test_moving_line_generates_shi_and_shows_yongshen(self):
+        """占財得兌之解：靜財空破，官動生世化出寅財——「神兆機于動」，寅日得財。"""
+        _, _, v = self.run_case("ZS002")
+        self.assertEqual((v["direction"], v["rule"]), ("吉", "動爻生世化出用神"))
+
+    def test_fushen_usable_and_unusable(self):
+        """飛伏神章：伏神得日月生者有用；休囚值月破者無用。"""
+        _, r, v = self.run_case("ZS035")     # 候文書得賁：午火父伏而得卯月生，甲午日得
+        self.assertIsNone(r["primary"])
+        self.assertEqual((v["direction"], v["rule"]), ("吉", "伏神"))
+        _, r, v = self.run_case("ZS141")     # 占功名得旅：官伏而月破，「勿想成名」
+        self.assertIsNone(r["primary"])
+        self.assertEqual((v["direction"], v["rule"]), ("凶", "伏神"))
+
+    def test_rootless_yongshen(self):
+        """自占病得大過之鼎：「用神無根，元神有力亦難生。」"""
+        _, _, v = self.run_case("ZS003")
+        self.assertEqual((v["direction"], v["rule"]), ("凶", "用神無根"))
+
+    def test_huitou_ke_needs_force(self):
+        """占病得謙之蹇：「雖化戌土之克，春令土衰，卯月克制，有殺無妨。」"""
+        h, _, v = self.run_case("ZS087")
+        self.assertFalse(nj._bian_has_force(h, h.shi()))
+        self.assertEqual(v["direction"], "吉")
+        h, _, v = self.run_case("ZS025")     # 比之井：世化酉金回頭沖克，變爻得申日扶 → 凶
+        self.assertTrue(nj._bian_has_force(h, h.shi()))
+        self.assertEqual(v["direction"], "凶")
+
+    def test_line_on_day_branch_cannot_be_hurt(self):
+        """日辰章：「諸爻不能傷日月。」借貸得晉，卯日即財，暗動之兄不能傷。"""
+        _, r, v = self.run_case("ZS185")
+        self.assertTrue(any("徒受其名" in e for e, _ in r["effects"]))
+        self.assertEqual(v["direction"], "吉")
+
+    def test_sanhe_waits_when_a_member_is_month_broken(self):
+        """三合章：局中一爻空破，待填實之時方成局。艮之觀，午月子水月破。"""
+        h, _, _ = self.run_case("ZS033")
+        self.assertEqual(h.sanhe, [])
+        self.assertTrue(any("局未成" in n for n in h.notes))
+
+    def test_shi_month_broken(self):
+        """求官章：「世空世破、官破官空，俱不得。」占復職得晉，世爻酉金月破。"""
+        _, _, v = self.run_case("ZS093")
+        self.assertEqual(v["direction"], "凶")
+        self.assertTrue(any("世爻月破" in x for x in v["reasons"]))
+
+    def test_metal_on_si_day_and_tomb_when_strong(self):
+        """生旺墓絕章：金爻旺相逢巳日為長生，休囚則論克；旺相者入墓非真。"""
+        h = nj.annotate("111111", [], "己巳", "辰")      # 辰月土生金：五爻申金旺相
+        self.assertTrue(h.yaos[4].day_rel.startswith("日辰長生"))
+        h = nj.annotate("111111", [], "己巳", "午")      # 午月火克金：休囚
+        self.assertTrue(h.yaos[4].day_rel.startswith("日克"))
+        h, _, _ = self.run_case("ZS058")                 # 申月辰日，亥水得月生而入日墓
+        y = next(x for x in h.yaos if x.zhi == "亥")
+        self.assertEqual(y.day_score, 0)
+
+    def test_every_dated_chart_gets_a_verdict(self):
+        for cid in ("ZS035", "ZS141", "ZS184", "ZS186"):
+            _, _, v = self.run_case(cid)
+            self.assertIn(v["direction"], ("吉", "凶", "未定"))
+
+
 nj.LIUQIN_KE_INV = lambda t: [k for k, v in nj.LIUQIN_KE.items() if v == t][0]
 
 if __name__ == "__main__":

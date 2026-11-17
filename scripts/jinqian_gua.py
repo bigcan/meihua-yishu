@@ -319,6 +319,7 @@ def print_result(
     najia_ask: Optional[str] = None,
     najia_at: Optional[str] = None,
     najia_tz: float = 8.0,
+    najia_illness: Optional[str] = None,
 ) -> None:
     result = result or analyze(hex_)
     print("\n" + "=" * 56)
@@ -355,7 +356,7 @@ def print_result(
         h = najia_annotate(ben["二進位"], changing=dong["位置"], day_ganzhi=day, month_zhi=month)
         print_hexagram(h)
         if najia_ask:
-            print_yongshen(h, find_yongshen(h, najia_ask))
+            print_yongshen(h, find_yongshen(h, najia_ask, {"illness": najia_illness}))
         else:
             print("\n提示：加 --ask <問事> 可定用神、原忌神與應期（python najia.py list-questions）")
     else:
@@ -372,7 +373,7 @@ def print_result(
 def _split_najia_flags(args: List[str]) -> Tuple[List[str], dict]:
     """從 CLI args 中分離出 --day/--month/--ask 等納甲旗標，回傳 (剩餘 args, najia_kwargs)"""
     nj = {"najia_day": None, "najia_month": None, "najia_ask": None,
-          "najia_at": None, "najia_tz": 8.0}
+          "najia_at": None, "najia_tz": 8.0, "najia_illness": None}
     out: List[str] = []
     i = 0
     while i < len(args):
@@ -385,6 +386,9 @@ def _split_najia_flags(args: List[str]) -> Tuple[List[str], dict]:
             i += 2
         elif a == "--ask" and i + 1 < len(args):
             nj["najia_ask"] = args[i + 1]
+            i += 2
+        elif a == "--illness" and i + 1 < len(args):
+            nj["najia_illness"] = args[i + 1]
             i += 2
         elif a == "--at" and i + 1 < len(args):
             nj["najia_at"] = args[i + 1]
@@ -461,6 +465,7 @@ HELP = """\
   --tz    時區（小時，預設 8）
   --day / --month  手動覆蓋日干支／月建
   --ask   問事類型 → 用神、原忌神、用神綜合、應期（python najia.py list-questions）
+  --illness  占病時填 近病 或 久病（逢沖逢空的斷法相反）
 """
 
 

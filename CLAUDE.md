@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status of this branch (v4.1) — read first
 
-`SKILL.md`, `references/` and `scripts/` on this branch are **v4.1**, imported from the installed skill (the v4 audit rewrite of 2026-10-12 was made outside this repo) plus the 2026-11-17 direct-verdict changes. See `CHANGELOG.md`. Much of the rest of this file still describes v3 and is stale where they differ:
+`SKILL.md`, `references/` and `scripts/` on this branch are **v4.2** (v4.1 plus the rule-chain verdict in `najia.py`), imported from the installed skill (the v4 audit rewrite of 2026-10-12 was made outside this repo) plus the 2026-11-17 direct-verdict changes. See `CHANGELOG.md`. Much of the rest of this file still describes v3 and is stale where they differ:
 
 - Meihua `time` now defaults to Shao Yong's year/month/day/hour method; second precision is `time-precise`. Pass `--at "YYYY-MM-DD HH:MM"` (and `--tz`) — 卦氣 and 月建 follow solar terms via `scripts/calendar_util.py`.
 - The strategy block is an optional appendix, no longer mandatory output.
-- **Tests that are green on v4.1**: `python tests/test_skill.py` (25) and `python tests/backtest.py --baseline`. The eight-tier suite under `scripts/test_*.py` has **not** been ported: `test_meihua_qigua` fails to import and 15 other tests fail, because v4 changed data structures and output section names. Do not read those failures as regressions, and do not delete the suite — port it.
-- `python tests/backtest.py --miss` scores the engines against worked cases from 《增刪卜易》 and 《梅花易數》. Any change to judgement logic in `najia.py` / `meihua_calc.py` must not regress `tests/backtest_baseline.json`; update the baseline only when the numbers improve.
+- **Tests that are green**: `python tests/test_skill.py` (37) and `python tests/backtest.py --baseline`. The eight-tier suite under `scripts/test_*.py` has **not** been ported: `test_meihua_qigua` fails to import and 15 other tests fail, because v4 changed data structures and output section names. Do not read those failures as regressions, and do not delete the suite — port it.
+- `python tests/backtest.py --miss` scores the engines against worked cases from 《增刪卜易》 and 《梅花易數》. Any change to judgement logic in `najia.py` / `meihua_calc.py` must not regress `tests/backtest_baseline.json`; update the baseline only when the numbers improve. Tune rules against the development half only (`--miss` lists odd-numbered cases); never inspect holdout misses (`--miss-all`) while tuning — report the holdout number as-is. Every new rule needs a book citation and a pinning test in `TestVerdictRules`.
 - `python scripts/build_package.py` still builds all three shapes from this tree.
 
 ## What this repo is
