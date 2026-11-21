@@ -359,6 +359,88 @@ class TestVerdictRules(unittest.TestCase):
             self.assertIn(v["direction"], ("吉", "凶", "未定"))
 
 
+class TestNihaiLookup(unittest.TestCase):
+    """倪師《天紀》卦圖透鏡：歸卦、去重、取捨規則（假資料），以及真語料的卦序對照（有快取才跑）。"""
+
+    @staticmethod
+    def e(h2, h3, quote, bvid="BV1KJsLekEfA", part=8, gua=None, t="00:01:00", book="09-hexagrams"):
+        d = {"book": book, "h2": h2, "h3": h3, "quote": quote, "bvid": bvid,
+             "part": part, "section": 1, "t_hms": t, "note": ""}
+        if gua:
+            d["gua"] = gua
+        return d
+
+    def setUp(self):
+        import nihai_lookup as nl
+        self.nl = nl
+        heads = [f"卦{i}（p{i:02d}）" for i in range(1, 65)]
+        self.base = [self.e(h, "人间道", f"填充{i}號佔位文字甲乙丙丁戊己庚辛") for i, h in enumerate(heads)]
+        self.heads = heads
+
+    def test_gua_field_beats_h2(self):
+        # 語料 77 條 h2 與 gua 不一致，抽查皆 gua 對：以 gua 為準
+        rows = self.nl.parse(self.base + [self.e(self.heads[0], "卜筮用例", "小兒在雲中雁銜書有消息至",
+                                                 bvid="BV1q7BZYcEZP", part=21, gua=18)])
+        r = [x for x in rows if x["kind"] == "卜筮用例"][0]
+        self.assertEqual(r["gua"], 18)
+        self.assertEqual(r["cite"], "[卦18 §1 @00:01:00]")
+        self.assertEqual(r["url"], "https://www.bilibili.com/video/BV1q7BZYcEZP?p=21&t=60")
+
+    def test_h2_order_fallback(self):
+        rows = self.nl.parse(self.base + [self.e(self.heads[21], "卜筮用例", "官人著公服登梯代表升遷")])
+        self.assertEqual([x["gua"] for x in rows if x["kind"] == "卜筮用例"], [22])
+
+    def test_excluded_sections(self):
+        extra = [self.e(self.heads[0], "阳宅", "西北方乾位的宅法講究"),
+                 self.e("清扫重挂", "人间道", "雜訊條目不該出現在結果"),
+                 self.e("測字", "测字", "測字有卦欄但不是卦圖", book="10-divination", gua=5)]
+        quotes = {x["quote"] for x in self.nl.parse(self.base + extra)}
+        self.assertFalse(quotes & {q["quote"] for q in extra})
+
+    def test_extra_books_with_gua(self):
+        x = self.e("金钱卦", "金钱卦", "雨在下舟張帆在江中仙女雲中執桂", book="10-divination",
+                   bvid="BV1q7BZYcEZP", part=25, gua=22)
+        rows = self.nl.parse(self.base + [x])
+        self.assertIn((22, "卜筮用例"), {(r["gua"], r["kind"]) for r in rows})
+
+    def test_dedupe_prefers_gua_video_across_hexagrams(self):
+        # 同一段話：正片被 h2 歸到第 1 卦，分卦影片標第 18 卦，部分重疊 → 只留分卦影片那條
+        long_q = "这在蛊之道里面都提到大家看占卜的诸位看这个图有一个小儿呢小孩子在云中这是天官促成"
+        rows = self.nl.parse(self.base + [
+            self.e(self.heads[0], "卜筮用例", long_q + "第二个雁啣书有消息至"),
+            self.e(self.heads[0], "卜筮用例", "前面几句不同" + long_q, bvid="BV1q7BZYcEZP", part=21, gua=18),
+        ])
+        bu = [r for r in rows if r["kind"] == "卜筮用例"]
+        self.assertEqual(len(bu), 1)
+        self.assertEqual(bu[0]["gua"], 18)
+
+    def test_distinct_quotes_kept(self):
+        rows = self.nl.parse(self.base + [
+            self.e(self.heads[0], "卜筮用例", "卜婚姻可成但要堅心像磨玉一樣小心"),
+            self.e(self.heads[0], "卜筮用例", "問父親病重梯上官人就是棺不要被圖綁到"),
+        ])
+        self.assertEqual(sum(r["kind"] == "卜筮用例" for r in rows), 2)
+
+    def test_real_corpus_hexagram_order(self):
+        """真語料：六十四卦冊 h2 的出現順序 = 文王卦序（簡繁對照後與本技能卦名逐字相同）。"""
+        path = self.nl.corpus_dir() / "data" / "entries.jsonl"
+        if not path.exists():
+            self.skipTest("沒有倪師語料快取")
+        import json
+        s2t = str.maketrans("为讼师风泽谦随蛊临观贲剥复颐过离恒壮晋损渐归丰兑涣节济",
+                            "為訟師風澤謙隨蠱臨觀賁剝復頤過離恆壯晉損漸歸豐兌渙節濟")
+        names = []
+        for line in path.open(encoding="utf-8"):
+            e = json.loads(line)
+            h = e["h2"].split("（")[0]
+            if e["book"] == "09-hexagrams" and h != "清扫重挂" and h not in names:
+                names.append(h)
+        by_num = {n: name for n, name in mh.HEXAGRAMS.values()}
+        self.assertEqual([n.translate(s2t) for n in names], [by_num[i] for i in range(1, 65)])
+        covered = {r["gua"] for r in self.nl.load(clone=False) if r["kind"] == "卜筮用例"}
+        self.assertGreaterEqual(len(covered), 60)
+
+
 nj.LIUQIN_KE_INV = lambda t: [k for k, v in nj.LIUQIN_KE.items() if v == t][0]
 
 if __name__ == "__main__":

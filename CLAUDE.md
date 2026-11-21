@@ -8,9 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Meihua `time` now defaults to Shao Yong's year/month/day/hour method; second precision is `time-precise`. Pass `--at "YYYY-MM-DD HH:MM"` (and `--tz`) — 卦氣 and 月建 follow solar terms via `scripts/calendar_util.py`.
 - The strategy block is an optional appendix, no longer mandatory output.
-- **Tests — all green, keep them so**: the eight-tier suite `python -m unittest discover -s scripts -p "test_*.py"` (222, ported to v4 on 2026-11-17), `python tests/test_skill.py` (43), and `python tests/backtest.py --baseline`.
+- **Tests — all green, keep them so**: the eight-tier suite `python -m unittest discover -s scripts -p "test_*.py"` (222, ported to v4 on 2026-11-17), `python tests/test_skill.py` (50), and `python tests/backtest.py --baseline`.
 - `python tests/backtest.py --miss` scores the engines against worked cases from 《增刪卜易》 and 《梅花易數》. Any change to judgement logic in `najia.py` / `meihua_calc.py` must not regress `tests/backtest_baseline.json`; update the baseline only when the numbers improve. Tune rules against the development group only (`split: dev` in the gold file; `--miss` lists just those); never inspect `holdout` or `fresh` misses (`--miss-all`) while tuning — report those numbers as-is, next to the always-吉 base rate. Every new rule needs a book citation and a pinning test in `TestVerdictRules`.
 - `python scripts/build_package.py` still builds all three shapes from this tree.
+- **v4.4 Ni Haixia lens** (`scripts/nihai_lookup.py`, `SKILL.md` §6之二): reads the third-party `nihai-tianji-corpus` from a local cache (`~/.cache/meihua-yishu/` or `$NIHAI_CORPUS`, cloned on first use). Never vendor its text into `references/` — the lectures are a copyrighted modern work (see License note); the repo holds only the lookup code. The lens never decides 成敗 or the confidence grade.
 
 ## What this repo is
 
